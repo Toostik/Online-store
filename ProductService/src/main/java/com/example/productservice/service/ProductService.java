@@ -5,6 +5,8 @@ import com.example.productservice.dto.ProductDto;
 import com.example.productservice.entity.Product;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductService {
     private final ProductRepository productRepository;
+    private final CacheManager cacheManager;
 
     public List<ProductDto> getAllProducts() {
         List<Product> products = (List<Product>) productRepository.findAll();
@@ -33,10 +36,13 @@ public class ProductService {
         return productDtoList;
     }
 
+    @Cacheable(value = "productDetail", key = "#id", unless = "#result == null")
     public ProductDto getProductById(Long id) {
+
         Product product = productRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("Product by id{" + id + "}" + "doesn't exist")
         );
+
         return product.toDto();
     }
 
