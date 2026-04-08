@@ -50,12 +50,12 @@ public class ProductService {
     }
 
 
-    public Map<Long, Long> getPrices(List<Long> ids) {
+    public Map<Long, BigDecimal> getPrices(List<Long> ids) {
         return productRepository.findPricesByIds(ids)
                 .stream()
                 .collect(Collectors.toMap(
                         row -> (Long) row[0],
-                        row -> (Long) row[1]
+                        row -> (BigDecimal) row[1]
                 ));
     }
 
@@ -71,8 +71,13 @@ public class ProductService {
     public void decreaseQuantity(Map<Long, Integer> products) {
         products.forEach((id, qty) -> {
             productRepository.findById(id).ifPresent(product -> {
-                product.setStockQuantity(product.getStockQuantity() - qty);
-                productRepository.save(product);
+                if((product.getStockQuantity() - qty) < 0)
+                {
+                    throw new RuntimeException("The product is not enough");
+                }else {
+                    product.setStockQuantity(product.getStockQuantity() - qty);
+                    productRepository.save(product);
+                }
             });
         });
     }

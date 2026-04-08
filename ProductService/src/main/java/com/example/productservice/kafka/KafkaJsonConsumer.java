@@ -20,6 +20,7 @@ public class KafkaJsonConsumer {
     private final ProductService productService;
     @KafkaListener(topics = "orders-created", groupId = "products-consumers-group")
     public void consume(Map<String, Integer> quantityOfProducts, Acknowledgment ack) {
+        LOGGER.info("Order received");
 
         Map<Long, Integer> products = quantityOfProducts.entrySet().stream()
                 .collect(Collectors.toMap(e -> Long.parseLong(e.getKey()), Map.Entry::getValue));

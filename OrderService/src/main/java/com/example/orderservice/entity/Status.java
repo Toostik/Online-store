@@ -1,11 +1,11 @@
 package com.example.orderservice.entity;
 
 public enum Status {
-    CREATED,
-    CONFIRMED,
-    PAID,
-    SHIPPED,
-    DELIVERED,
-    CANCELLED,
-    PARTLY
+    CREATED,          // создан
+    CONFIRMED,        // подтверждён
+    PROCESSING,       // в обработке
+    PARTIALLY_SHIPPED,// частично отгружен
+    SHIPPED,          // полностью отгружен
+    DELIVERED, // доставлен
+    CANCELLED
 }

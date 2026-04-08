@@ -22,7 +22,7 @@ public class KafkaJsonProducer {
     }
 
     public void sendMessage(OrderDto orderDto, Map<Long, Integer> quantityOfProducts){
-        LOGGER.info("Order created -> {}", orderDto.toString());
+        LOGGER.info("Order created -> {}", orderDto.getId());
         kafkaTemplate.send("orders-created", quantityOfProducts);
     }
 }

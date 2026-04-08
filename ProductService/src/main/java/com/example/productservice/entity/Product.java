@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -25,7 +26,7 @@ public class Product {
     @Column(name = "description")
     private String description;
     @Column(name = "price")
-    private Long price;
+    private BigDecimal price;
     @Column(name = "stock_quantity")
     private Integer stockQuantity;
     @Column(name = "created_at")

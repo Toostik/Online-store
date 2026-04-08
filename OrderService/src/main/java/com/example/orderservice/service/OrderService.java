@@ -3,6 +3,7 @@ package com.example.orderservice.service;
 import com.example.orderservice.dao.OrderItemRepository;
 import com.example.orderservice.dao.OrderRepository;
 import com.example.orderservice.dto.OrderDto;
+import com.example.orderservice.dto.OrderItemDto;
 import com.example.orderservice.dto.request.OrderItemRequest;
 import com.example.orderservice.entity.Order;
 import com.example.orderservice.entity.OrderItem;
@@ -16,7 +17,9 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +42,18 @@ public class OrderService {
     private final WebClient productServiceWebClient;
 
 
+    public Boolean isProductsExists(List<Long> ids) {
+        Boolean isProductsExists = productServiceWebClient.post()
+                .uri("/api/products/exists")
+                .bodyValue(ids)
+                .retrieve()
+                .toBodilessEntity()
+                .map(response -> true)
+                .onErrorReturn(false)
+                .block();
+
+        return isProductsExists;
+    }
 
     public List<OrderDto> getAllOrders(Long id) {
 
@@ -51,13 +66,13 @@ public class OrderService {
                 .block();
 
         List<Order> orders;
-        if(isUserExist){
+        if (isUserExist) {
             orders = orderRepository.findAllByUserId(id);
-        }else{
+        } else {
             throw new RuntimeException("User doesn't exist");
         }
 
-        if(orders.isEmpty()){
+        if (orders.isEmpty()) {
             throw new RuntimeException("User doesn't have orders");
         }
 
@@ -70,111 +85,60 @@ public class OrderService {
 
     public OrderDto createOrder(String id, List<OrderItemRequest> items) {
 
-        List<Long> ids = items.stream().map(
-                OrderItemRequest::getProductId
-        ).toList();
-
-        Boolean isProductsExists = productServiceWebClient.post()
-                .uri("/api/products/exists")
-                .bodyValue(ids)
-                .retrieve()
-                .toBodilessEntity()
-                .map(response -> true)
-                .onErrorReturn(false)
-                .block();
-
-        Map<Long, Long> prices = productServiceWebClient.post()
-                .uri("/api/products/prices")
-                .bodyValue(ids)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Map<Long, Long>>() {
-                }).block();
-
-        Map<Long, Integer> quantityOfProducts = new HashMap<>();
-//        Создание переменной количества продуктов для отправки в kafka.
-        if (Boolean.TRUE.equals(isProductsExists)) {
-            for (OrderItemRequest item : items) {
-                quantityOfProducts.put(item.getProductId(), item.getQuantity());
-            }
-        } else {
-            throw new RuntimeException("Product doesn't exist");
-        }
-
         if (items.isEmpty()) {
             return new OrderDto();
         }
 
-        List<Order> orders = new ArrayList<>();
-        List<OrderItem> orderItems = new ArrayList<>();
+        List<Long> ids = items.stream().map(
+                OrderItemRequest::getProductId
+        ).toList();
 
-//        Из полученного списка из запроса создаём OrderItems и к каждопу присваиваем заказ
-//        затем сохраняем в базу
+
+        Map<Long, BigDecimal> prices = productServiceWebClient.post()
+                .uri("/api/products/prices")
+                .bodyValue(ids)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<Long, BigDecimal>>() {
+                }).block();
+
+//        Создание переменной количества продуктов для отправки в kafka.
+        Map<Long, Integer> quantityOfProducts = new HashMap<>();
+
+        for (OrderItemRequest item : items) {
+            quantityOfProducts.put(item.getProductId(), item.getQuantity());
+        }
+
+//        Из полученного списка товаров создаём список List<OrderItems>, сохраняем заказ
+//        и помещаем в заказ товары
+        Order order = new Order();
+        order.setCreatedAt(LocalDateTime.now());
+        order.setUserId(Long.valueOf(id));
+        List<OrderItem> orderItems = new ArrayList<>();
+        BigDecimal price;
+        BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (OrderItemRequest itemRequest : items) {
+            OrderItem item = new OrderItem();
 
-            Order order = new Order();
-            OrderItem orderItem = new OrderItem();
-
-            Long price = prices.get(itemRequest.getProductId());
-            Long totalAmount = price * itemRequest.getQuantity();
-
-            // Order
-            order.setCreatedAt(LocalDate.now());
-            order.setStatus(Status.CREATED);
-            order.setUserId(Long.valueOf(id));
-            order.setTotalAmount(totalAmount);
-
-            // СНАЧАЛА сохраняем Order
-            orderRepository.save(order);
+            price = prices.get(itemRequest.getProductId());
+            totalAmount = totalAmount.add(price.multiply(BigDecimal.valueOf(itemRequest.getQuantity())));
 
             // OrderItem
-            orderItem.setQuantity(itemRequest.getQuantity());
-            orderItem.setProduct_id(itemRequest.getProductId());
-            orderItem.setPriceAtPurchase(Math.toIntExact(price));
-            orderItem.setOrder(order);
+            item.setQuantity(itemRequest.getQuantity());
+            item.setProductId(itemRequest.getProductId());
+            item.setPriceAtPurchase(price);
+            item.setOrder(order);
 
-            orderItems.add(orderItem);
-            orders.add(order);
+            orderItems.add(item);
+
         }
 
-// Если заказов нет
-        if (orders.isEmpty()) {
-            return new OrderDto();
-        }
+        order.setItems(orderItems);
+        order.setTotalAmount(totalAmount);
+        orderRepository.save(order);
 
-//Создаём parentOrder
-        Order parentOrder = new Order();
+        kafkaJsonProducer.sendMessage(order.toDto(), quantityOfProducts);
 
-        Long totalAmount = 0L;
-        boolean hasCancelled = false;
-
-// считаем сумму и статус
-        for (Order order : orders) {
-            totalAmount += order.getTotalAmount();
-
-            if (order.getStatus() == Status.CANCELLED) {
-                hasCancelled = true;
-            }
-        }
-
-// статус родителя
-        if (hasCancelled) {
-            parentOrder.setStatus(Status.PARTLY);
-        } else {
-            parentOrder.setStatus(Status.CREATED);
-        }
-
-        parentOrder.setOrders(orders);
-        parentOrder.setTotalAmount(totalAmount);
-        parentOrder.setUserId(Long.valueOf(id));
-        parentOrder.setCreatedAt(LocalDate.now());
-
-// Сохраняем parent
-        orderRepository.save(parentOrder);
-
-// Kafka
-        kafkaJsonProducer.sendMessage(parentOrder.toDto(), quantityOfProducts);
-
-        return parentOrder.toDto();
+        return order.toDto();
     }
 }
