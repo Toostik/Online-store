@@ -40,13 +40,13 @@ public class JwtFilter implements GlobalFilter {
 
         try {;
 
-                Long userId = jwtUtil.extractUserId(token);
+                String userId = jwtUtil.extractUserId(token);
                 String role = jwtUtil.extractRole(token);
 
 
             ServerHttpRequest mutatedRequest = exchange.getRequest()
                     .mutate()
-                    .header("X-User-Id", userId.toString())
+                    .header("X-User-Id", userId)
                     .header("X-User-Role", role)
                     .build();
 

@@ -17,21 +17,21 @@ spring:
             - RewritePath=/api/users/(?<segment>.*), /api/users/${segment}
 
         - id: product-service
-          uri: http://localhost:8083
+          uri: http://product-service:8083
           predicates:
             - Path=/api/products/**, /api/categories/**
 
         - id: cart-service
-          uri: http://localhost:8084
+          uri: http://cart-service:8084
           predicates:
             - Path=/api/cart/**
 
         - id: order-service
-          uri: http://localhost:8085
+          uri: http://order-service:8085
           predicates:
             - Path=/api/orders/**
   datasource:
-    url: jdbc:postgresql://postgres:5432/shop_db
+    url: jdbc:postgresql://localhost:5432/shop_db
     username: user
     password: password
 

@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderItemRequest {
-    private Long product_id;
+    private Long productId;
     private Integer quantity;
 
 }

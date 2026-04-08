@@ -1,0 +1,409 @@
+warning: in the working copy of 'ApiGateway/src/main/resources/application.yml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'AuthService/src/main/resources/application.properties', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'CartService/src/main/resources/application.properties', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'OrderService/pom.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'OrderService/src/main/resources/application.properties', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'ProductService/pom.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'ProductService/src/main/resources/application.properties', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/ApiGateway/src/main/java/com/example/apigateway/jwt/JwtFilter.java b/ApiGateway/src/main/java/com/example/apigateway/jwt/JwtFilter.java[m
+[1mindex 346bc9e..a46507a 100644[m
+[1m--- a/ApiGateway/src/main/java/com/example/apigateway/jwt/JwtFilter.java[m
+[1m+++ b/ApiGateway/src/main/java/com/example/apigateway/jwt/JwtFilter.java[m
+[36m@@ -40,13 +40,13 @@[m [mpublic class JwtFilter implements GlobalFilter {[m
+ [m
+         try {;[m
+ [m
+[31m-                Long userId = jwtUtil.extractUserId(token);[m
+[32m+[m[32m                String userId = jwtUtil.extractUserId(token);[m
+                 String role = jwtUtil.extractRole(token);[m
+ [m
+ [m
+             ServerHttpRequest mutatedRequest = exchange.getRequest()[m
+                     .mutate()[m
+[31m-                    .header("X-User-Id", userId.toString())[m
+[32m+[m[32m                    .header("X-User-Id", userId)[m
+                     .header("X-User-Role", role)[m
+                     .build();[m
+ [m
+[1mdiff --git a/ApiGateway/src/main/java/com/example/apigateway/jwt/JwtUtil.java b/ApiGateway/src/main/java/com/example/apigateway/jwt/JwtUtil.java[m
+[1mindex 7441f12..1abdda3 100644[m
+[1m--- a/ApiGateway/src/main/java/com/example/apigateway/jwt/JwtUtil.java[m
+[1m+++ b/ApiGateway/src/main/java/com/example/apigateway/jwt/JwtUtil.java[m
+[36m@@ -51,10 +51,10 @@[m [mpublic class JwtUtil {[m
+ [m
+     }[m
+ [m
+[31m-    public Long extractUserId(String token) {[m
+[32m+[m[32m    public String extractUserId(String token) {[m
+         return validateAndExtractClaims(token)[m
+                 .getBody()[m
+[31m-                .get("userId", Long.class);[m
+[32m+[m[32m                .get("userId", String.class);[m
+     }[m
+ [m
+     public String extractRole(String token) {[m
+[1mdiff --git a/ApiGateway/src/main/resources/application.yml b/ApiGateway/src/main/resources/application.yml[m
+[1mindex 2ebd009..8a3604d 100644[m
+[1m--- a/ApiGateway/src/main/resources/application.yml[m
+[1m+++ b/ApiGateway/src/main/resources/application.yml[m
+[36m@@ -17,21 +17,21 @@[m [mspring:[m
+             - RewritePath=/api/users/(?<segment>.*), /api/users/${segment}[m
+ [m
+         - id: product-service[m
+[31m-          uri: http://localhost:8083[m
+[32m+[m[32m          uri: http://product-service:8083[m
+           predicates:[m
+             - Path=/api/products/**, /api/categories/**[m
+ [m
+         - id: cart-service[m
+[31m-          uri: http://localhost:8084[m
+[32m+[m[32m          uri: http://cart-service:8084[m
+           predicates:[m
+             - Path=/api/cart/**[m
+ [m
+         - id: order-service[m
+[31m-          uri: http://localhost:8085[m
+[32m+[m[32m          uri: http://order-service:8085[m
+           predicates:[m
+             - Path=/api/orders/**[m
+   datasource:[m
+[31m-    url: jdbc:postgresql://postgres:5432/shop_db[m
+[32m+[m[32m    url: jdbc:postgresql://localhost:5432/shop_db[m
+     username: user[m
+     password: password[m
+ [m
+[1mdiff --git a/AuthService/src/main/java/com/example/authservice/jwt/JwtUtil.java b/AuthService/src/main/java/com/example/authservice/jwt/JwtUtil.java[m
+[1mindex 10dfc2a..2052e16 100644[m
+[1m--- a/AuthService/src/main/java/com/example/authservice/jwt/JwtUtil.java[m
+[1m+++ b/AuthService/src/main/java/com/example/authservice/jwt/JwtUtil.java[m
+[36m@@ -33,7 +33,7 @@[m [mpublic class JwtUtil {[m
+             this.privateKey = KeyFactory.getInstance("EC").generatePrivate(spec);[m
+ [m
+         } catch (Exception e) {[m
+[31m-            throw new RuntimeException("Ошибка загрузки PUBLIC KEY", e);[m
+[32m+[m[32m            throw new RuntimeException("Ошибка загрузки PRIVATE KEY", e);[m
+         }[m
+     }[m
+ [m
+[36m@@ -46,6 +46,7 @@[m [mpublic class JwtUtil {[m
+                     .setExpiration(new Date(System.currentTimeMillis() + 3600_000))[m
+                     .signWith(privateKey)[m
+                     .compact();[m
+[32m+[m
+         } catch (IllegalArgumentException e) {[m
+             throw new RuntimeException("Invalid claims for JWT creation: " + e.getMessage(), e);[m
+ [m
+[1mdiff --git a/AuthService/src/main/java/com/example/authservice/kafka/KafkaJsonConsumer.java b/AuthService/src/main/java/com/example/authservice/kafka/KafkaJsonConsumer.java[m
+[1mindex 8c461dc..7dd926a 100644[m
+[1m--- a/AuthService/src/main/java/com/example/authservice/kafka/KafkaJsonConsumer.java[m
+[1m+++ b/AuthService/src/main/java/com/example/authservice/kafka/KafkaJsonConsumer.java[m
+[36m@@ -14,22 +14,11 @@[m [mpublic class KafkaJsonConsumer {[m
+ [m
+     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaJsonConsumer.class);[m
+ [m
+[31m-    private final ObjectMapper objectMapper = new ObjectMapper(); // для десериализации[m
+[32m+[m[32m    private final ObjectMapper objectMapper = new ObjectMapper();[m
+ [m
+     @KafkaListener(topics = "users-registered", groupId = "users-consumers-group")[m
+[31m-    public void consume(String message, Acknowledgment ack) {[m
+[31m-        try {[m
+[31m-            // Преобразуем JSON в объект[m
+[31m-            CurrentUserDto userDto = objectMapper.readValue(message, CurrentUserDto.class);[m
+[31m-[m
+[31m-            LOGGER.info("Message received -> {}", userDto.toString());[m
+[31m-[m
+[31m-            ack.acknowledge();[m
+[31m-        } catch (JsonProcessingException e) {[m
+[31m-            LOGGER.error("Failed to deserialize message: {}", message, e);[m
+[31m-            // можно сделать nack или просто пропустить[m
+[31m-        } catch (Exception e) {[m
+[31m-            LOGGER.error("Unexpected error while consuming message: {}", message, e);[m
+[31m-        }[m
+[32m+[m[32m    public void consume(CurrentUserDto userDto, Acknowledgment ack) {[m
+[32m+[m[32m        LOGGER.info("Received user -> {}", userDto);[m
+[32m+[m[32m        ack.acknowledge();[m
+     }[m
+ }[m
+\ No newline at end of file[m
+[1mdiff --git a/AuthService/src/main/java/com/example/authservice/service/JwtService.java b/AuthService/src/main/java/com/example/authservice/service/JwtService.java[m
+[1mindex 21d6e64..02f555a 100644[m
+[1m--- a/AuthService/src/main/java/com/example/authservice/service/JwtService.java[m
+[1m+++ b/AuthService/src/main/java/com/example/authservice/service/JwtService.java[m
+[36m@@ -51,7 +51,7 @@[m [mpublic class JwtService {[m
+         }[m
+ [m
+         Map<String, Object> claims = new HashMap<>();[m
+[31m-        claims.put("userId", user.getId());[m
+[32m+[m[32m        claims.put("userId", user.getId().toString());[m
+         claims.put("role", user.getRole());[m
+ [m
+         return jwtUtil.createToken(claims);[m
+[1mdiff --git a/AuthService/src/main/resources/application.properties b/AuthService/src/main/resources/application.properties[m
+[1mindex fe1630e..58bd094 100644[m
+[1m--- a/AuthService/src/main/resources/application.properties[m
+[1m+++ b/AuthService/src/main/resources/application.properties[m
+[36m@@ -10,8 +10,6 @@[m [mspring.datasource.password=password[m
+ [m
+ spring.jpa.hibernate.ddl-auto=update[m
+ [m
+[31m-#Kafka[m
+[31m-[m
+ #Kafka[m
+ spring.kafka.consumer.bootstrap-servers=kafka:9092[m
+ spring.kafka.consumer.group-id=users-consumers-group[m
+[36m@@ -19,10 +17,10 @@[m [mspring.kafka.consumer.auto-offset-reset=latest[m
+ spring.kafka.listener.ack-mode=manual[m
+ [m
+ spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer[m
+[31m-spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer[m
+[31m-#spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.JsonDeserializer[m
+[32m+[m[32m#spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer[m
+[32m+[m[32mspring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.JsonDeserializer[m
+ spring.kafka.consumer.properties.spring.json.trusted.packages=*[m
+[31m-[m
+[32m+[m[32mspring.kafka.consumer.properties.spring.json.type.mapping=com.example.userservice.dto.CurrentUserDto:com.example.authservice.dto.CurrentUserDto[m
+ [m
+ spring.kafka.producer.bootstrap-servers=kafka:9092[m
+ spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer[m
+[1mdiff --git a/CartService/src/main/java/com/example/cartservice/config/WebClientConfig.java b/CartService/src/main/java/com/example/cartservice/config/WebClientConfig.java[m
+[1mindex d77074c..f61ecc0 100644[m
+[1m--- a/CartService/src/main/java/com/example/cartservice/config/WebClientConfig.java[m
+[1m+++ b/CartService/src/main/java/com/example/cartservice/config/WebClientConfig.java[m
+[36m@@ -9,14 +9,14 @@[m [mpublic class WebClientConfig {[m
+     @Bean[m
+     public WebClient userServiceWebClient(WebClient.Builder builder){[m
+         return builder[m
+[31m-                .baseUrl("http://localhost:8082")[m
+[32m+[m[32m                .baseUrl("http://user-service:8082")[m
+                 .build();[m
+     }[m
+ [m
+     @Bean[m
+     public WebClient productServiceWebClient(WebClient.Builder builder){[m
+         return builder[m
+[31m-                .baseUrl("http://localhost:8083")[m
+[32m+[m[32m                .baseUrl("http://product-service:8083")[m
+                 .build();[m
+     }[m
+ [m
+[1mdiff --git a/CartService/src/main/resources/application.properties b/CartService/src/main/resources/application.properties[m
+[1mindex 1529956..a69a9bf 100644[m
+[1m--- a/CartService/src/main/resources/application.properties[m
+[1m+++ b/CartService/src/main/resources/application.properties[m
+[36m@@ -2,8 +2,8 @@[m [mspring.application.name=CartService[m
+ [m
+ server.port=8084[m
+ [m
+[31m-spring.datasource.url=jdbc:postgresql://localhost:5432/mydb[m
+[31m-spring.datasource.username=myuser[m
+[31m-spring.datasource.password=mypassword[m
+[32m+[m[32mspring.datasource.url=jdbc:postgresql://postgres:5432/shop_db[m
+[32m+[m[32mspring.datasource.username=user[m
+[32m+[m[32mspring.datasource.password=password[m
+ [m
+ spring.jpa.hibernate.ddl-auto=update[m
+\ No newline at end of file[m
+[1mdiff --git a/OrderService/pom.xml b/OrderService/pom.xml[m
+[1mindex c402166..6473eb6 100644[m
+[1m--- a/OrderService/pom.xml[m
+[1m+++ b/OrderService/pom.xml[m
+[36m@@ -5,7 +5,7 @@[m
+     <parent>[m
+         <groupId>org.springframework.boot</groupId>[m
+         <artifactId>spring-boot-starter-parent</artifactId>[m
+[31m-        <version>3.5.13</version>[m
+[32m+[m[32m        <version>4.0.5</version>[m
+         <relativePath/> <!-- lookup parent from repository -->[m
+     </parent>[m
+     <groupId>com.example</groupId>[m
+[36m@@ -30,14 +30,36 @@[m
+         <java.version>21</java.version>[m
+     </properties>[m
+     <dependencies>[m
+[32m+[m[32m        <!--        Kafka-->[m
+[32m+[m[32m        <dependency>[m
+[32m+[m[32m            <groupId>org.springframework.boot</groupId>[m
+[32m+[m[32m            <artifactId>spring-boot-starter-kafka</artifactId>[m
+[32m+[m[32m        </dependency>[m
+[32m+[m[32m        <!--        Json-->[m
+[32m+[m[32m        <dependency>[m
+[32m+[m[32m            <groupId>com.fasterxml.jackson.core</groupId>[m
+[32m+[m[32m            <artifactId>jackson-databind</artifactId>[m
+[32m+[m[32m        </dependency>[m
+[32m+[m[32m        <dependency>[m
+[32m+[m[32m            <groupId>com.fasterxml.jackson.datatype</groupId>[m
+[32m+[m[32m            <artifactId>jackson-datatype-jsr310</artifactId>[m
+[32m+[m[32m        </dependency>[m
+[32m+[m[32m        <!--        DB-->[m
+         <dependency>[m
+             <groupId>org.springframework.boot</groupId>[m
+             <artifactId>spring-boot-starter-data-jpa</artifactId>[m
+         </dependency>[m
+[32m+[m[32m        <dependency>[m
+[32m+[m[32m            <groupId>org.postgresql</groupId>[m
+[32m+[m[32m            <artifactId>postgresql</artifactId>[m
+[32m+[m[32m            <scope>runtime</scope>[m
+[32m+[m[32m        </dependency>[m
+[32m+[m[32m        <!--        Security-->[m
+         <dependency>[m
+             <groupId>org.springframework.boot</groupId>[m
+             <artifactId>spring-boot-starter-security</artifactId>[m
+         </dependency>[m
+[32m+[m[32m        <!--        WEB-->[m
+         <dependency>[m
+             <groupId>org.springframework.boot</groupId>[m
+             <artifactId>spring-boot-starter-web</artifactId>[m
+[36m@@ -46,23 +68,19 @@[m
+             <groupId>org.springframework.boot</groupId>[m
+             <artifactId>spring-boot-starter-webflux</artifactId>[m
+         </dependency>[m
+[31m-[m
+[32m+[m[32m        <!--        Spring-->[m
+         <dependency>[m
+             <groupId>org.springframework.boot</groupId>[m
+             <artifactId>spring-boot-devtools</artifactId>[m
+             <scope>runtime</scope>[m
+             <optional>true</optional>[m
+         </dependency>[m
+[31m-        <dependency>[m
+[31m-            <groupId>org.postgresql</groupId>[m
+[31m-            <artifactId>postgresql</artifactId>[m
+[31m-            <scope>runtime</scope>[m
+[31m-        </dependency>[m
+         <dependency>[m
+             <groupId>org.projectlombok</groupId>[m
+             <artifactId>lombok</artifactId>[m
+             <optional>true</optional>[m
+         </dependency>[m
+[32m+[m[32m        <!--        Tests-->[m
+         <dependency>[m
+             <groupId>org.springframework.boot</groupId>[m
+             <artifactId>spring-boot-starter-test</artifactId>[m
+[1mdiff --git a/OrderService/src/main/java/com/example/orderservice/config/SecurityConfig.java b/OrderService/src/main/java/com/example/orderservice/config/SecurityConfig.java[m
+[1mindex ea3b62a..3f1b3d9 100644[m
+[1m--- a/OrderService/src/main/java/com/example/orderservice/config/SecurityConfig.java[m
+[1m+++ b/OrderService/src/main/java/com/example/orderservice/config/SecurityConfig.java[m
+[36m@@ -10,6 +10,7 @@[m [mimport org.springframework.security.web.SecurityFilterChain;[m
+ @Configuration[m
+ @EnableWebSecurity[m
+ public class SecurityConfig {[m
+[32m+[m
+     @Bean[m
+     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {[m
+         return http[m
+[36m@@ -18,4 +19,5 @@[m [mpublic class SecurityConfig {[m
+                         .anyRequest().permitAll()[m
+                 ).build();[m
+     }[m
+[32m+[m
+ }[m
+[1mdiff --git a/OrderService/src/main/java/com/example/orderservice/config/WebClientConfig.java b/OrderService/src/main/java/com/example/orderservice/config/WebClientConfig.java[m
+[1mindex 26fa64f..792bc4b 100644[m
+[1m--- a/OrderService/src/main/java/com/example/orderservice/config/WebClientConfig.java[m
+[1m+++ b/OrderService/src/main/java/com/example/orderservice/config/WebClientConfig.java[m
+[36m@@ -9,7 +9,13 @@[m [mpublic class WebClientConfig {[m
+     @Bean[m
+     public WebClient userServiceWebClient(){[m
+         return WebClient.builder()[m
+[31m-                .baseUrl("http://localhost:8082")[m
+[32m+[m[32m                .baseUrl("http://user-service:8082")[m
+[32m+[m[32m                .build();[m
+[32m+[m[32m    }[m
+[32m+[m[32m    @Bean[m
+[32m+[m[32m    public WebClient productServiceWebClient(){[m
+[32m+[m[32m        return WebClient.builder()[m
+[32m+[m[32m                .baseUrl("http://product-service:8083")[m
+                 .build();[m
+     }[m
+ }[m
+[1mdiff --git a/OrderService/src/main/java/com/example/orderservice/controller/OrderController.java b/OrderService/src/main/java/com/example/orderservice/controller/OrderController.java[m
+[1mindex 0eaa199..37e074f 100644[m
+[1m--- a/OrderService/src/main/java/com/example/orderservice/controller/OrderController.java[m
+[1m+++ b/OrderService/src/main/java/com/example/orderservice/controller/OrderController.java[m
+[36m@@ -1,6 +1,7 @@[m
+ package com.example.orderservice.controller;[m
+ [m
+ import com.example.orderservice.dto.OrderDto;[m
+[32m+[m[32mimport com.example.orderservice.dto.request.OrderItemRequest;[m
+ import com.example.orderservice.service.OrderService;[m
+ import lombok.RequiredArgsConstructor;[m
+ import org.springframework.http.ResponseEntity;[m
+[36m@@ -18,4 +19,10 @@[m [mpublic class OrderController {[m
+     public ResponseEntity<List<OrderDto>> getAllOrders(@RequestHeader("X-User-Id") Long id){[m
+         return ResponseEntity.ok(orderService.getAllOrders(id));[m
+     }[m
+[32m+[m
+[32m+[m[32m    @PostMapping[m
+[32m+[m[32m    public ResponseEntity<OrderDto> createOrder(@RequestHeader("X-User-Id") String id,[m
+[32m+[m[32m                                                @RequestBody List<OrderItemRequest> items){[m
+[32m+[m[32m        return ResponseEntity.ok(orderService.createOrder(id ,items));[m
+[32m+[m[32m    }[m
+ }[m
+[1mdiff --git a/OrderService/src/main/java/com/example/orderservice/dto/OrderDto.java b/OrderService/src/main/java/com/example/orderservice/dto/OrderDto.java[m
+[1mindex e1b97c9..899ae76 100644[m
+[1m--- a/OrderService/src/main/java/com/example/orderservice/dto/OrderDto.java[m
+[1m+++ b/OrderService/src/main/java/com/example/orderservice/dto/OrderDto.java[m
+[36m@@ -3,6 +3,8 @@[m [mpackage com.example.orderservice.dto;[m
+ import com.example.orderservice.entity.Order;[m
+ import com.example.orderservice.entity.OrderItem;[m
+ import com.example.orderservice.entity.Status;[m
+[32m+[m[32mimport com.fasterxml.jackson.annotation.JsonCreator;[m
+[32m+[m[32mimport com.fasterxml.jackson.annotation.JsonProperty;[m
+ import jakarta.persistence.*;[m
+ import lombok.AllArgsConstructor;[m
+ import lombok.Data;[m
+[36m@@ -13,13 +15,30 @@[m [mimport java.util.List;[m
+ [m
+ @Data[m
+ @NoArgsConstructor[m
+[31m-@AllArgsConstructor[m
+[32m+[m
+ public class OrderDto {[m
+     private Long id;[m
+     private String status;[m
+[31m-    private Long total_amount;[m
+[32m+[m[32m    private Long totalAmount;[m
+     private LocalDate createdAt;[m
+ [m
+     private OrderItemDto items;[m
+     private List<OrderDto> orders;[m
+[32m+[m
+[32m+[m[32m    @JsonCreator[m
+[32m+[m[32m    public OrderDto(@JsonProperty("id") Long id,[m
+[32m+[m[32m                    @JsonProperty("status") String status,[m
+[32m+[m[32m                    @JsonProperty("total_amount") Long total_amount,[m
+[32m+[m[32m                    @JsonProperty("created_at") LocalDate createdAt,[m
+[32m+[m[32m                    @JsonProperty("items") OrderItemDto items,[m
+[32m+[m[32m                    @JsonProperty("orders") List<OrderDto> orders) {[m
+[32m+[m
+[32m+[m[32m        this.id = id;[m
+[32m+[m[32m        this.status = status;[m
+[32m+[m[32m        this.totalAmount = total_amount;[m
+[32m+[m[32m        this.createdAt = createdAt;[m
+[32m+[m[32m        this.items = items;[m
+[32m+[m[32m        this.orders = orders;[m
+[32m+[m[32m    }[m
+[32m+[m
+ }[m
+[1mdiff --git a/OrderService/src/main/java/com/example/orderservice/dto/request/OrderItemRequest.java b/OrderService/src/main/java/com/example/orderservice/dto/request/OrderItemRequest.java[m
+[1mindex 605f485..48da04e 100644[m
+[1m--- a/OrderService/src/main/java/com/example/orderservice/dto/request/OrderItemRequest.java[m
+[1m+++ b/OrderService/src/main/java/com/example/orderservice/dto/request/OrderItemRequest.java[m
+[36m@@ -14,7 +14,7 @@[m [mimport java.util.List;[m
+ @NoArgsConstructor[m
+ @AllArgsConstructor[m
+ public class OrderItemRequest {[m
+[31m-    private Long product_id;[m
+[32m+[m[32m    private Long productId;[m
+     private Integer quantity;[m
+ [m
+ }[m
+[1mdiff --git a/OrderService/src/main/java/com/example/orderservice/entity/Order.java b/OrderService/src/main/java/com/example/orderservice/entity/Order.java[m
+[1mindex 42eb2fd..b59d57f 100644[m
+[1m--- a/OrderService/src/main/java/com/example/orderservice/entity/Order.java[m
+[1m+++ b/OrderService/src/main/java/com/example/orderservice/entity/Order.java[m
+[36m@@ -25,12 +25,12 @@[m [mpublic class Order {[m
+     @Column(name = "status")[m
+     private Status status;[m
+     @Column(name = "total_amount")[m
+[31m-    private Long total_amount;[m

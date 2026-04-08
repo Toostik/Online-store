@@ -51,10 +51,10 @@ public class JwtUtil {
 
     }
 
-    public Long extractUserId(String token) {
+    public String extractUserId(String token) {
         return validateAndExtractClaims(token)
                 .getBody()
-                .get("userId", Long.class);
+                .get("userId", String.class);
     }
 
     public String extractRole(String token) {

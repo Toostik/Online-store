@@ -9,7 +9,13 @@ public class WebClientConfig {
     @Bean
     public WebClient userServiceWebClient(){
         return WebClient.builder()
-                .baseUrl("http://localhost:8082")
+                .baseUrl("http://user-service:8082")
+                .build();
+    }
+    @Bean
+    public WebClient productServiceWebClient(){
+        return WebClient.builder()
+                .baseUrl("http://product-service:8083")
                 .build();
     }
 }

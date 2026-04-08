@@ -14,22 +14,11 @@ public class KafkaJsonConsumer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaJsonConsumer.class);
 
-    private final ObjectMapper objectMapper = new ObjectMapper(); // для десериализации
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @KafkaListener(topics = "users-registered", groupId = "users-consumers-group")
-    public void consume(String message, Acknowledgment ack) {
-        try {
-            // Преобразуем JSON в объект
-            CurrentUserDto userDto = objectMapper.readValue(message, CurrentUserDto.class);
-
-            LOGGER.info("Message received -> {}", userDto.toString());
-
-            ack.acknowledge();
-        } catch (JsonProcessingException e) {
-            LOGGER.error("Failed to deserialize message: {}", message, e);
-            // можно сделать nack или просто пропустить
-        } catch (Exception e) {
-            LOGGER.error("Unexpected error while consuming message: {}", message, e);
-        }
+    public void consume(CurrentUserDto userDto, Acknowledgment ack) {
+        LOGGER.info("Received user -> {}", userDto);
+        ack.acknowledge();
     }
 }
