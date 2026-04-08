@@ -31,4 +31,9 @@ public class ProductController {
     public Map<Long, Long> getPrices(@RequestBody List<Long> ids){
         return productService.getPrices(ids);
     }
+
+    @PostMapping("/exists")
+    public Boolean isProductsExists(@RequestBody List<Long> ids){
+        return productService.isProductExists(ids);
+    }
 }

@@ -58,4 +58,22 @@ public class ProductService {
                         row -> (Long) row[1]
                 ));
     }
+
+    public Boolean isProductExists(List<Long> ids) {
+        for(Long l: ids){
+            if(!productRepository.existsById(l)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void decreaseQuantity(Map<Long, Integer> products) {
+        products.forEach((id, qty) -> {
+            productRepository.findById(id).ifPresent(product -> {
+                product.setStockQuantity(product.getStockQuantity() - qty);
+                productRepository.save(product);
+            });
+        });
+    }
 }

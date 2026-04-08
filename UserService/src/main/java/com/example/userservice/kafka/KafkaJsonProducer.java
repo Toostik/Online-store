@@ -13,21 +13,14 @@ public class KafkaJsonProducer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaJsonProducer.class);
 
-    private final KafkaTemplate<Object, String> kafkaTemplate;
-    private ObjectMapper objectMapper;
+    private final KafkaTemplate<String, CurrentUserDto> kafkaTemplate;
 
-    public KafkaJsonProducer(KafkaTemplate<Object, String> kafkaTemplate) {
+    public KafkaJsonProducer(KafkaTemplate<String, CurrentUserDto> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
     public void sendMessage(CurrentUserDto currentUserDto){
-        LOGGER.info("Message sent -> {}", currentUserDto.toString());
-
-
-        try {
-            kafkaTemplate.send("users-registered", objectMapper.writeValueAsString(currentUserDto));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        LOGGER.info("Message sent -> {}", currentUserDto);
+        kafkaTemplate.send("users-registered", currentUserDto);
     }
 }

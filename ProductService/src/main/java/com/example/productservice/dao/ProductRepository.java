@@ -16,4 +16,6 @@ public interface ProductRepository extends CrudRepository<Product, Long> {
 
     @Query("SELECT p.id, p.price FROM Product p WHERE p.id IN :ids")
     List<Object[]> findPricesByIds(@Param("ids") List<Long> ids);
+
+    boolean existsById(Long id);
 }

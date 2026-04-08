@@ -1,33 +1,28 @@
-package com.example.userservice.kafka;
+package com.example.orderservice.kafka;
 
-import com.example.userservice.dto.CurrentUserDto;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.orderservice.dto.OrderDto;
+import com.example.orderservice.dto.request.OrderItemRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class KafkaJsonProducer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaJsonProducer.class);
 
-    private final KafkaTemplate<Object, String> kafkaTemplate;
-    private ObjectMapper objectMapper;
+    private final KafkaTemplate<String, Map<Long, Integer>> kafkaTemplate;
 
-    public KafkaJsonProducer(KafkaTemplate<Object, String> kafkaTemplate) {
+    public KafkaJsonProducer(KafkaTemplate<String, Map<Long, Integer>> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void sendMessage(CurrentUserDto currentUserDto){
-        LOGGER.info("Message sent -> {}", currentUserDto.toString());
-
-
-        try {
-            kafkaTemplate.send("users-registered", objectMapper.writeValueAsString(currentUserDto));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+    public void sendMessage(OrderDto orderDto, Map<Long, Integer> quantityOfProducts){
+        LOGGER.info("Order created -> {}", orderDto.toString());
+        kafkaTemplate.send("orders-created", quantityOfProducts);
     }
 }

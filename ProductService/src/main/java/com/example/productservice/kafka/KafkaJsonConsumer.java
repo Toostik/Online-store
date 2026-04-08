@@ -1,35 +1,33 @@
-package com.example.authservice.kafka;
+package com.example.productservice.kafka;
 
-import com.example.authservice.dto.CurrentUserDto;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.example.productservice.service.ProductService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Service
+@RequiredArgsConstructor
 public class KafkaJsonConsumer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaJsonConsumer.class);
+    private final ProductService productService;
+    @KafkaListener(topics = "orders-created", groupId = "products-consumers-group")
+    public void consume(Map<String, Integer> quantityOfProducts, Acknowledgment ack) {
 
-    private final ObjectMapper objectMapper = new ObjectMapper(); // для десериализации
+        Map<Long, Integer> products = quantityOfProducts.entrySet().stream()
+                .collect(Collectors.toMap(e -> Long.parseLong(e.getKey()), Map.Entry::getValue));
 
-    @KafkaListener(topics = "users-registered", groupId = "users-consumers-group")
-    public void consume(String message, Acknowledgment ack) {
-        try {
-            // Преобразуем JSON в объект
-            CurrentUserDto userDto = objectMapper.readValue(message, CurrentUserDto.class);
+        productService.decreaseQuantity(products);
 
-            LOGGER.info("Message received -> {}", userDto.toString());
+        ack.acknowledge();
 
-            ack.acknowledge();
-        } catch (JsonProcessingException e) {
-            LOGGER.error("Failed to deserialize message: {}", message, e);
-            // можно сделать nack или просто пропустить
-        } catch (Exception e) {
-            LOGGER.error("Unexpected error while consuming message: {}", message, e);
-        }
+
     }
 }

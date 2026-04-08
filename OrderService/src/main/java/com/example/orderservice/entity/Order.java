@@ -25,12 +25,12 @@ public class Order {
     @Column(name = "status")
     private Status status;
     @Column(name = "total_amount")
-    private Long total_amount;
+    private Long totalAmount;
     @Column(name = "created_at")
     private LocalDate createdAt;
 
-    @OneToOne(mappedBy = "order")
-    private OrderItem items;
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private OrderItem item;
 
     @ManyToOne
     private Order order;
@@ -41,11 +41,11 @@ public class Order {
     public OrderDto toDto() {
         return new OrderDto(
                 id,
-                status.name(),
-                total_amount,
+                status != null ? status.name() : null,
+                totalAmount,
                 createdAt,
-                items.toDto(),
-                orders.stream().map(Order::toDto).toList()
+                item != null ? item.toDto() : null,
+                orders != null ? orders.stream().map(Order::toDto).toList() : null
         );
     }
 }

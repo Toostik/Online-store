@@ -33,7 +33,7 @@ public class JwtUtil {
             this.privateKey = KeyFactory.getInstance("EC").generatePrivate(spec);
 
         } catch (Exception e) {
-            throw new RuntimeException("Ошибка загрузки PUBLIC KEY", e);
+            throw new RuntimeException("Ошибка загрузки PRIVATE KEY", e);
         }
     }
 
@@ -46,6 +46,7 @@ public class JwtUtil {
                     .setExpiration(new Date(System.currentTimeMillis() + 3600_000))
                     .signWith(privateKey)
                     .compact();
+
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid claims for JWT creation: " + e.getMessage(), e);
 
