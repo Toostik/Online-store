@@ -2,6 +2,7 @@ package com.example.orderservice.kafka;
 
 import com.example.orderservice.dto.OrderDto;
 import com.example.orderservice.dto.request.OrderItemRequest;
+import com.example.orderservice.entity.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -15,14 +16,14 @@ public class KafkaJsonProducer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaJsonProducer.class);
 
-    private final KafkaTemplate<String, Map<Long, Integer>> kafkaTemplate;
+    private final KafkaTemplate<String, OrderDto> kafkaTemplate;
 
-    public KafkaJsonProducer(KafkaTemplate<String, Map<Long, Integer>> kafkaTemplate) {
+    public KafkaJsonProducer(KafkaTemplate<String, OrderDto> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void sendMessage(OrderDto orderDto, Map<Long, Integer> quantityOfProducts){
+    public void sendMessage(String topic, OrderDto orderDto){
         LOGGER.info("Order created -> {}", orderDto.getId());
-        kafkaTemplate.send("orders-created", quantityOfProducts);
+        kafkaTemplate.send(topic, orderDto);
     }
 }

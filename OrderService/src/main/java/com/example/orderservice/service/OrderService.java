@@ -4,6 +4,7 @@ import com.example.orderservice.dao.OrderItemRepository;
 import com.example.orderservice.dao.OrderRepository;
 import com.example.orderservice.dto.OrderDto;
 import com.example.orderservice.dto.OrderItemDto;
+import com.example.orderservice.dto.PaymentDto;
 import com.example.orderservice.dto.request.OrderItemRequest;
 import com.example.orderservice.entity.Order;
 import com.example.orderservice.entity.OrderItem;
@@ -20,10 +21,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @Transactional
@@ -101,13 +99,6 @@ public class OrderService {
                 .bodyToMono(new ParameterizedTypeReference<Map<Long, BigDecimal>>() {
                 }).block();
 
-//        Создание переменной количества продуктов для отправки в kafka.
-        Map<Long, Integer> quantityOfProducts = new HashMap<>();
-
-        for (OrderItemRequest item : items) {
-            quantityOfProducts.put(item.getProductId(), item.getQuantity());
-        }
-
 //        Из полученного списка товаров создаём список List<OrderItems>, сохраняем заказ
 //        и помещаем в заказ товары
         Order order = new Order();
@@ -137,8 +128,17 @@ public class OrderService {
         order.setTotalAmount(totalAmount);
         orderRepository.save(order);
 
-        kafkaJsonProducer.sendMessage(order.toDto(), quantityOfProducts);
+        kafkaJsonProducer.sendMessage("orders-created", order.toDto());
 
         return order.toDto();
     }
+
+    public void updateStatus(Status status, PaymentDto paymentDto) {
+        Order order = orderRepository.findById(paymentDto.getOrderId()).orElse(null);
+        assert order != null;
+        order.setStatus(status);
+        orderRepository.save(order);
+        kafkaJsonProducer.sendMessage("orders-confirmed", order.toDto());
+    }
+
 }

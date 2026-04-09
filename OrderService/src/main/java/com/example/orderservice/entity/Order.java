@@ -40,11 +40,11 @@ public class Order {
     public OrderDto toDto() {
         return new OrderDto(
                 id,
+                userId,
                 status != null ? status.name() : null,
                 totalAmount,
                 createdAt,
                 items.stream().map(OrderItem::toDto).toList()
-
         );
     }
 }

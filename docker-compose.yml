@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   # ====================== ИНФРАСТРУКТУРА ======================
   postgres:
@@ -46,7 +48,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s  
+      start_period: 30s
 
   # ====================== KAFKA + ZOOKEEPER ======================
   zookeeper:
@@ -74,8 +76,8 @@ services:
       zookeeper:
         condition: service_started
     ports:
-    - "9092:9092"   # для микросервисов
-    - "29092:29092"
+      - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -96,10 +98,12 @@ services:
 
   # ====================== МИКРОСЕРВИСЫ ======================
   api-gateway:
-    build:
-      context: ./ApiGateway
-      dockerfile: Dockerfile
-    container_name: api-gateway
+    image: maven:3.9.9-eclipse-temurin-21
+    working_dir: /app
+    command: sh -c "chmod +x mvnw && ./mvnw spring-boot:run"
+    volumes:
+      - ./ApiGateway:/app
+      - maven_repo:/root/.m2
     ports:
       - "8080:8080"
     environment:
@@ -113,13 +117,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
 
   auth-service:
-    build:
-      context: ./AuthService
-      dockerfile: Dockerfile
+    image: maven:3.9.9-eclipse-temurin-21
     container_name: auth-service
+    working_dir: /app
+    command: ./mvnw spring-boot:run
+    volumes:
+      - ./AuthService:/app
     ports:
       - "8081:8080"
     environment:
@@ -133,13 +138,14 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    restart: unless-stopped
 
   user-service:
-    build:
-      context: ./UserService
-      dockerfile: Dockerfile
+    image: maven:3.9.9-eclipse-temurin-21
     container_name: user-service
+    working_dir: /app
+    command: ./mvnw spring-boot:run
+    volumes:
+      - ./UserService:/app
     ports:
       - "8082:8080"
     environment:
@@ -152,13 +158,14 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    restart: unless-stopped
 
   product-service:
-    build:
-      context: ./ProductService
-      dockerfile: Dockerfile
+    image: maven:3.9.9-eclipse-temurin-21
     container_name: product-service
+    working_dir: /app
+    command: ./mvnw spring-boot:run
+    volumes:
+      - ./ProductService:/app
     ports:
       - "8083:8080"
     environment:
@@ -171,13 +178,16 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    restart: unless-stopped
-  
+      redis:
+        condition: service_healthy
+
   cart-service:
-    build:
-      context: ./CartService
-      dockerfile: Dockerfile
+    image: maven:3.9.9-eclipse-temurin-21
     container_name: cart-service
+    working_dir: /app
+    command: ./mvnw spring-boot:run
+    volumes:
+      - ./CartService:/app
     ports:
       - "8084:8080"
     environment:
@@ -190,13 +200,14 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    restart: unless-stopped
-  
+
   order-service:
-    build:
-      context: ./OrderService
-      dockerfile: Dockerfile
+    image: maven:3.9.9-eclipse-temurin-21
     container_name: order-service
+    working_dir: /app
+    command: ./mvnw spring-boot:run
+    volumes:
+      - ./OrderService:/app
     ports:
       - "8085:8080"
     environment:
@@ -209,10 +220,49 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    restart: unless-stopped
 
+  payment-service:
+    image: maven:3.9.9-eclipse-temurin-21
+    container_name: payment-service
+    working_dir: /app
+    command: ./mvnw spring-boot:run
+    volumes:
+      - ./PaymentService:/app
+    ports:
+      - "8086:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  notification-service:
+    image: maven:3.9.9-eclipse-temurin-21
+    container_name: notification-service
+    working_dir: /app
+    command: ./mvnw spring-boot:run
+    volumes:
+      - ./NotificationService:/app
+    ports:
+      - "8087:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   es_data:
   zookeeper_data:
+  maven_repo:
