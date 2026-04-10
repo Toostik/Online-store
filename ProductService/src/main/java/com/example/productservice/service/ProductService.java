@@ -5,6 +5,8 @@ import com.example.productservice.dto.ProductDto;
 import com.example.productservice.entity.Product;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -33,10 +35,13 @@ public class ProductService {
         return productDtoList;
     }
 
+    @Cacheable(value = "productDetail", key = "#id", unless = "#result == null")
     public ProductDto getProductById(Long id) {
+
         Product product = productRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("Product by id{" + id + "}" + "doesn't exist")
         );
+
         return product.toDto();
     }
 
@@ -50,12 +55,12 @@ public class ProductService {
     }
 
 
-    public Map<Long, Long> getPrices(List<Long> ids) {
+    public Map<Long, BigDecimal> getPrices(List<Long> ids) {
         return productRepository.findPricesByIds(ids)
                 .stream()
                 .collect(Collectors.toMap(
                         row -> (Long) row[0],
-                        row -> (Long) row[1]
+                        row -> (BigDecimal) row[1]
                 ));
     }
 
@@ -71,8 +76,13 @@ public class ProductService {
     public void decreaseQuantity(Map<Long, Integer> products) {
         products.forEach((id, qty) -> {
             productRepository.findById(id).ifPresent(product -> {
-                product.setStockQuantity(product.getStockQuantity() - qty);
-                productRepository.save(product);
+                if((product.getStockQuantity() - qty) < 0)
+                {
+                    throw new RuntimeException("The product is not enough");
+                }else {
+                    product.setStockQuantity(product.getStockQuantity() - qty);
+                    productRepository.save(product);
+                }
             });
         });
     }

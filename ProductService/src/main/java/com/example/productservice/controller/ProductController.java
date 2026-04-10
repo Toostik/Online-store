@@ -28,7 +28,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductById(productId));
     }
     @PostMapping("/prices")
-    public Map<Long, Long> getPrices(@RequestBody List<Long> ids){
+    public Map<Long, BigDecimal> getPrices(@RequestBody List<Long> ids){
         return productService.getPrices(ids);
     }
 
