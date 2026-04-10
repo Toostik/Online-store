@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -18,22 +19,28 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
-    @Column(name = "product_id")
-    private Long product_id;
-    @Column(name = "quantity")
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
+    @Column(name = "quantity", nullable = false)
     private Integer quantity;
     @Column(name = "price_at_purchase")
-    private Integer priceAtPurchase;
+    private BigDecimal priceAtPurchase;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private ItemShipmentStatus status = ItemShipmentStatus.NOT_SHIPPED;
 
-    @OneToOne(fetch = FetchType.LAZY)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
     private Order order;
 
     public OrderItemDto toDto(){
         return new OrderItemDto(
                 id,
-                product_id,
+                productId,
                 quantity,
-                priceAtPurchase
+                priceAtPurchase,
+                status
         );
     }
 
