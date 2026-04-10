@@ -1,7 +1,8 @@
 version: "3.9"
 
 services:
-  # ====================== ИНФРАСТРУКТУРА ======================
+# ====================== ИНФРАСТРУКТУРА ======================
+
   postgres:
     image: postgres:16-alpine
     container_name: postgres
@@ -13,23 +14,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d shop_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   redis:
     image: redis:7-alpine
     container_name: redis
     ports:
       - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
@@ -37,9 +27,9 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
+<<<<<<< HEAD
       - "9300:9300"
     volumes:
       - es_data:/usr/share/elasticsearch/data
@@ -49,125 +39,128 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+=======
+>>>>>>> feature/kafka-redis-logging
 
-  # ====================== KAFKA + ZOOKEEPER ======================
+# ====================== KAFKA ======================
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
-    hostname: zookeeper
+    container_name: zookeeper
     ports:
       - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeper_data:/var/lib/zookeeper/data
-    healthcheck:
-      test: ["CMD-SHELL", "echo stat | nc localhost 2181 | grep -q 'Mode:' || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 8
-      start_period: 30s
-    restart: unless-stopped
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
-    container_name: kafka
     depends_on:
-      zookeeper:
-        condition: service_started
+      - zookeeper
     ports:
       - "9092:9092"
+<<<<<<< HEAD
       - "29092:29092"
+=======
+>>>>>>> feature/kafka-redis-logging
     environment:
-      KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
 
-  # ====================== МИКРОСЕРВИСЫ ======================
+# ====================== МИКРОСЕРВИСЫ (DEV) ======================
+
   api-gateway:
     image: maven:3.9.9-eclipse-temurin-21
+<<<<<<< HEAD
     working_dir: /app
     command: sh -c "chmod +x mvnw && ./mvnw spring-boot:run"
     volumes:
       - ./ApiGateway:/app
       - maven_repo:/root/.m2
+=======
+    container_name: api-gateway
+    working_dir: /app
+    command: mvn spring-boot:run
+    volumes:
+      - ./ApiGateway:/app
+>>>>>>> feature/kafka-redis-logging
     ports:
       - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: password
-      SPRING_REDIS_HOST: redis
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
+<<<<<<< HEAD
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+=======
+      - postgres
+      - redis
+      - kafka
+>>>>>>> feature/kafka-redis-logging
 
   auth-service:
     image: maven:3.9.9-eclipse-temurin-21
     container_name: auth-service
     working_dir: /app
+<<<<<<< HEAD
     command: ./mvnw spring-boot:run
+=======
+    command: mvn spring-boot:run
+>>>>>>> feature/kafka-redis-logging
     volumes:
       - ./AuthService:/app
     ports:
       - "8081:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: password
-      SPRING_REDIS_HOST: redis
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
+<<<<<<< HEAD
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
+=======
+      - postgres
+      - kafka
+>>>>>>> feature/kafka-redis-logging
 
   user-service:
     image: maven:3.9.9-eclipse-temurin-21
     container_name: user-service
     working_dir: /app
+<<<<<<< HEAD
     command: ./mvnw spring-boot:run
+=======
+    command: mvn spring-boot:run
+>>>>>>> feature/kafka-redis-logging
     volumes:
       - ./UserService:/app
     ports:
       - "8082:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: password
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
+<<<<<<< HEAD
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
+=======
+      - postgres
+      - kafka
+>>>>>>> feature/kafka-redis-logging
 
   product-service:
     image: maven:3.9.9-eclipse-temurin-21
     container_name: product-service
     working_dir: /app
+<<<<<<< HEAD
     command: ./mvnw spring-boot:run
+=======
+    command: mvn spring-boot:run
+>>>>>>> feature/kafka-redis-logging
     volumes:
       - ./ProductService:/app
     ports:
       - "8083:8080"
+<<<<<<< HEAD
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
       SPRING_DATASOURCE_USERNAME: user
@@ -180,16 +173,26 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+=======
+    depends_on:
+      - postgres
+      - kafka
+>>>>>>> feature/kafka-redis-logging
 
   cart-service:
     image: maven:3.9.9-eclipse-temurin-21
     container_name: cart-service
     working_dir: /app
+<<<<<<< HEAD
     command: ./mvnw spring-boot:run
+=======
+    command: mvn spring-boot:run
+>>>>>>> feature/kafka-redis-logging
     volumes:
       - ./CartService:/app
     ports:
       - "8084:8080"
+<<<<<<< HEAD
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
       SPRING_DATASOURCE_USERNAME: user
@@ -200,16 +203,26 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+=======
+    depends_on:
+      - postgres
+      - kafka
+>>>>>>> feature/kafka-redis-logging
 
   order-service:
     image: maven:3.9.9-eclipse-temurin-21
     container_name: order-service
     working_dir: /app
+<<<<<<< HEAD
     command: ./mvnw spring-boot:run
+=======
+    command: mvn spring-boot:run
+>>>>>>> feature/kafka-redis-logging
     volumes:
       - ./OrderService:/app
     ports:
       - "8085:8080"
+<<<<<<< HEAD
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
       SPRING_DATASOURCE_USERNAME: user
@@ -220,16 +233,26 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+=======
+    depends_on:
+      - postgres
+      - kafka
+>>>>>>> feature/kafka-redis-logging
 
   payment-service:
     image: maven:3.9.9-eclipse-temurin-21
     container_name: payment-service
     working_dir: /app
+<<<<<<< HEAD
     command: ./mvnw spring-boot:run
+=======
+    command: mvn spring-boot:run
+>>>>>>> feature/kafka-redis-logging
     volumes:
       - ./PaymentService:/app
     ports:
       - "8086:8080"
+<<<<<<< HEAD
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
       SPRING_DATASOURCE_USERNAME: user
@@ -240,16 +263,26 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+=======
+    depends_on:
+      - postgres
+      - kafka
+>>>>>>> feature/kafka-redis-logging
 
   notification-service:
     image: maven:3.9.9-eclipse-temurin-21
     container_name: notification-service
     working_dir: /app
+<<<<<<< HEAD
     command: ./mvnw spring-boot:run
+=======
+    command: mvn spring-boot:run
+>>>>>>> feature/kafka-redis-logging
     volumes:
       - ./NotificationService:/app
     ports:
       - "8087:8080"
+<<<<<<< HEAD
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
       SPRING_DATASOURCE_USERNAME: user
@@ -266,3 +299,11 @@ volumes:
   es_data:
   zookeeper_data:
   maven_repo:
+=======
+    depends_on:
+      - postgres
+      - kafka
+
+volumes:
+  postgres_data:
+>>>>>>> feature/kafka-redis-logging

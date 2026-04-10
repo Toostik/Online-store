@@ -12,6 +12,7 @@ import com.example.orderservice.entity.Status;
 import com.example.orderservice.kafka.KafkaJsonProducer;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
@@ -26,6 +27,7 @@ import java.util.*;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -128,8 +130,15 @@ public class OrderService {
         order.setTotalAmount(totalAmount);
         orderRepository.save(order);
 
+<<<<<<< HEAD
         kafkaJsonProducer.sendMessage("orders-created", order.toDto());
 
+=======
+
+
+        kafkaJsonProducer.sendMessage("orders-created", order.toDto());
+        log.info("Order created -> {}", order.getId());
+>>>>>>> feature/kafka-redis-logging
         return order.toDto();
     }
 
@@ -139,6 +148,10 @@ public class OrderService {
         order.setStatus(status);
         orderRepository.save(order);
         kafkaJsonProducer.sendMessage("orders-confirmed", order.toDto());
+<<<<<<< HEAD
+=======
+        log.info("Order confirmed -> {}", order.getId());
+>>>>>>> feature/kafka-redis-logging
     }
 
 }

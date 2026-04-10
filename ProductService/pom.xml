@@ -44,7 +44,10 @@
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
+<<<<<<< HEAD
 
+=======
+>>>>>>> feature/kafka-redis-logging
 <!--        Redis-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
