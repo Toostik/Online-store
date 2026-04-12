@@ -1,5 +1,6 @@
 package com.example.orderservice.controller;
 
+import com.example.orderservice.dto.CartDto;
 import com.example.orderservice.dto.OrderDto;
 import com.example.orderservice.dto.request.OrderItemRequest;
 import com.example.orderservice.service.OrderService;
@@ -22,7 +23,7 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<OrderDto> createOrder(@RequestHeader("X-User-Id") String id,
-                                                @RequestBody List<OrderItemRequest> items){
-        return ResponseEntity.ok(orderService.createOrder(id ,items));
+                                                @RequestBody CartDto cart){
+        return ResponseEntity.ok(orderService.createOrder(cart));
     }
 }

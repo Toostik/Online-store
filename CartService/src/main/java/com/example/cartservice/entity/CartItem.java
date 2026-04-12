@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Entity
@@ -22,17 +23,17 @@ public class CartItem {
     @Column(name = "id")
     private Long id;
     @Column(name = "quantity")
-    private Long quantity;
+    private Integer quantity;
     @Column(name = "product_id")
     private Long productId;
     @Column(name = "price_at_add_time")
-    private Long priceAtAddTime;
+    private BigDecimal priceAtAddTime;
 
     @ManyToOne
     @JoinColumn(name = "cart_id")
     private Cart cart;
 
-    public CartItem(Long quantity, Long productId, Long priceAtAddTime, Cart cart) {
+    public CartItem(Integer quantity, Long productId, BigDecimal priceAtAddTime, Cart cart) {
         this.quantity = quantity;
         this.productId = productId;
         this.priceAtAddTime = priceAtAddTime;

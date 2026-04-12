@@ -1,7 +1,5 @@
-package com.example.cartservice.dto;
+package com.example.orderservice.dto;
 
-import com.example.cartservice.entity.CartItem;
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

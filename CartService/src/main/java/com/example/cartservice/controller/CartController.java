@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/cart")
+@RequestMapping("/api/carts")
 public class CartController {
     private final CartService cartService;
     @GetMapping
@@ -24,4 +24,11 @@ public class CartController {
         cartService.createCart(id, items);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/create-order")
+    public ResponseEntity<?> createOrder(@RequestHeader("X-User-Id") Long id){
+        cartService.createOrder(id);
+        return ResponseEntity.ok().build();
+    }
+
 }

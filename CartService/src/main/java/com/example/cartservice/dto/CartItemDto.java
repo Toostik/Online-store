@@ -7,21 +7,18 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class CartItemDto {
 
     private Long id;
-    private Long quantity;
+    private Integer quantity;
     private Long productId;
 
-    public CartItemDto(Long quantity, Long productId) {
-        this.quantity = quantity;
-        this.productId = productId;
-    }
-
-    public CartItem toEntity(Cart cart, Long price){
+    public CartItem toEntity(Cart cart, BigDecimal price){
         return new CartItem(
                 quantity,
                 productId,

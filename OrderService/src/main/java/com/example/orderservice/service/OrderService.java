@@ -2,9 +2,7 @@ package com.example.orderservice.service;
 
 import com.example.orderservice.dao.OrderItemRepository;
 import com.example.orderservice.dao.OrderRepository;
-import com.example.orderservice.dto.OrderDto;
-import com.example.orderservice.dto.OrderItemDto;
-import com.example.orderservice.dto.PaymentDto;
+import com.example.orderservice.dto.*;
 import com.example.orderservice.dto.request.OrderItemRequest;
 import com.example.orderservice.entity.Order;
 import com.example.orderservice.entity.OrderItem;
@@ -83,14 +81,15 @@ public class OrderService {
         return orderDtoList;
     }
 
-    public OrderDto createOrder(String id, List<OrderItemRequest> items) {
+    public OrderDto createOrder(CartDto cart) {
+        List<CartItemDto> items = cart.getItems();
 
         if (items.isEmpty()) {
             return new OrderDto();
         }
 
         List<Long> ids = items.stream().map(
-                OrderItemRequest::getProductId
+                CartItemDto::getProductId
         ).toList();
 
 
@@ -105,24 +104,24 @@ public class OrderService {
 //        и помещаем в заказ товары
         Order order = new Order();
         order.setCreatedAt(LocalDateTime.now());
-        order.setUserId(Long.valueOf(id));
+        order.setUserId(cart.getUserId());
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal price;
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        for (OrderItemRequest itemRequest : items) {
-            OrderItem item = new OrderItem();
+        for (CartItemDto item : items) {
+            OrderItem orderItem = new OrderItem();
 
-            price = prices.get(itemRequest.getProductId());
-            totalAmount = totalAmount.add(price.multiply(BigDecimal.valueOf(itemRequest.getQuantity())));
+            price = prices.get(item.getProductId());
+            totalAmount = totalAmount.add(price.multiply(BigDecimal.valueOf(item.getQuantity())));
 
             // OrderItem
-            item.setQuantity(itemRequest.getQuantity());
-            item.setProductId(itemRequest.getProductId());
-            item.setPriceAtPurchase(price);
-            item.setOrder(order);
+            orderItem.setQuantity(item.getQuantity());
+            orderItem.setProductId(item.getProductId());
+            orderItem.setPriceAtPurchase(price);
+            orderItem.setOrder(order);
 
-            orderItems.add(item);
+            orderItems.add(orderItem);
 
         }
 
@@ -130,14 +129,10 @@ public class OrderService {
         order.setTotalAmount(totalAmount);
         orderRepository.save(order);
 
-
         kafkaJsonProducer.sendMessage("orders-created", order.toDto());
 
-
-
-
-        kafkaJsonProducer.sendMessage("orders-created", order.toDto());
         log.info("Order created -> {}", order.getId());
+
         return order.toDto();
     }
 

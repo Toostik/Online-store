@@ -1,5 +1,6 @@
 package com.example.cartservice.entity;
 
+import com.example.cartservice.dto.CartDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,8 +24,14 @@ public class Cart {
     @Column(name = "user_id")
     private Long userId;
 
-    @OneToMany(mappedBy = "cart")
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL)
     private List<CartItem> items;
 
-
+    public CartDto toDto() {
+        return new CartDto(
+                id,
+                userId,
+                items.stream().map(CartItem::toDto).toList()
+        );
+    }
 }

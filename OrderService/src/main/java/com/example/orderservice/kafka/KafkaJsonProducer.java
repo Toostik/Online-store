@@ -23,7 +23,6 @@ public class KafkaJsonProducer {
     }
 
     public void sendMessage(String topic, OrderDto orderDto){
-        LOGGER.info("Order created -> {}", orderDto.getId());
         kafkaTemplate.send(topic, orderDto);
     }
 }

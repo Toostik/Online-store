@@ -1,5 +1,6 @@
 package com.example.orderservice.kafka;
 
+import com.example.orderservice.dto.CartDto;
 import com.example.orderservice.dto.PaymentDto;
 import com.example.orderservice.entity.Status;
 import com.example.orderservice.service.OrderService;
@@ -24,6 +25,12 @@ public class KafkaConsumer {
     public void consume(PaymentDto paymentDto, Acknowledgment ack){
         LOGGER.info("Payment received -> {}", paymentDto.getId());
         orderService.updateStatus(Status.CONFIRMED, paymentDto);
+        ack.acknowledge();
+    }
+    @KafkaListener(topics = "cart-checkout", groupId = "order-consumers-group")
+    public void consumeCart(CartDto cartDto, Acknowledgment ack){
+        LOGGER.info("Cart received -> {}", cartDto.getId());
+        orderService.createOrder(cartDto);
         ack.acknowledge();
     }
 

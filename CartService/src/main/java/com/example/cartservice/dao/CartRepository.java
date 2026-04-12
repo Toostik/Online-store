@@ -11,4 +11,6 @@ public interface CartRepository extends CrudRepository<Cart, Long> {
     Optional<Cart> findCartByUserId(Long userId);
 
     Optional<Cart> findByUserId(Long id);
+
+    boolean existsByUserId(Long userId);
 }
