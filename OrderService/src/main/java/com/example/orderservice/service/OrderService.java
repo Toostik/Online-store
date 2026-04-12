@@ -130,15 +130,14 @@ public class OrderService {
         order.setTotalAmount(totalAmount);
         orderRepository.save(order);
 
-<<<<<<< HEAD
+
         kafkaJsonProducer.sendMessage("orders-created", order.toDto());
 
-=======
+
 
 
         kafkaJsonProducer.sendMessage("orders-created", order.toDto());
         log.info("Order created -> {}", order.getId());
->>>>>>> feature/kafka-redis-logging
         return order.toDto();
     }
 
@@ -148,10 +147,7 @@ public class OrderService {
         order.setStatus(status);
         orderRepository.save(order);
         kafkaJsonProducer.sendMessage("orders-confirmed", order.toDto());
-<<<<<<< HEAD
-=======
         log.info("Order confirmed -> {}", order.getId());
->>>>>>> feature/kafka-redis-logging
     }
 
 }
