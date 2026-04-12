@@ -26,7 +26,7 @@ public class UserService {
     public RegisterResponse createUser(RegisterRequest request){
         User user = request.toUser();
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(Role.ROLE_USER);
+        user.setRole(Role.USER);
         userRepository.save(user);
         kafkaJsonProducer.sendMessage(user.toCurrentUserDto());
         return new RegisterResponse(user.getId(),user.getRole().name());
