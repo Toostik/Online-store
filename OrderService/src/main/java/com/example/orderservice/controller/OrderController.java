@@ -6,6 +6,8 @@ import com.example.orderservice.dto.request.OrderItemRequest;
 import com.example.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,13 +19,13 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping
-    public ResponseEntity<List<OrderDto>> getAllOrders(@RequestHeader("X-User-Id") Long id){
-        return ResponseEntity.ok(orderService.getAllOrders(id));
+    public ResponseEntity<List<OrderDto>> getAllOrders(@AuthenticationPrincipal Jwt jwt){
+        Long userId = Long.valueOf(jwt.getSubject());
+        return ResponseEntity.ok(orderService.getAllOrders(userId));
     }
 
     @PostMapping
-    public ResponseEntity<OrderDto> createOrder(@RequestHeader("X-User-Id") String id,
-                                                @RequestBody CartDto cart){
+    public ResponseEntity<OrderDto> createOrder(@RequestBody CartDto cart){
         return ResponseEntity.ok(orderService.createOrder(cart));
     }
 }

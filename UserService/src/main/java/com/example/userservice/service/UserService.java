@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -29,7 +30,7 @@ public class UserService {
         user.setRole(Role.USER);
         userRepository.save(user);
         kafkaJsonProducer.sendMessage(user.toCurrentUserDto());
-        return new RegisterResponse(user.getId(),user.getRole().name());
+        return new RegisterResponse(user.getId(), List.of(user.getRole().name()));
     }
 
     public CurrentUserDto getCurrentUser(Long userId) {

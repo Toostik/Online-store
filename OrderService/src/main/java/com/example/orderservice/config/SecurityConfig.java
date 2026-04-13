@@ -1,6 +1,6 @@
 package com.example.orderservice.config;
 
-import com.example.orderservice.jwt.JwtHeaderFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,8 +11,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
-
+    private final JwtConfig jwtConfig;
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -21,7 +22,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/orders/**").hasAnyRole("USER","ADMIN")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtHeaderFilter(), UsernamePasswordAuthenticationFilter.class)
+                .oauth2ResourceServer(oauth -> oauth
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConfig.jwtAuthConverter()))
+                )
                 .build();
 
     }

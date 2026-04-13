@@ -11,7 +11,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 
-@Component
+//@Component
 public class JwtFilter implements GlobalFilter {
 
     private final JwtUtil jwtUtil;

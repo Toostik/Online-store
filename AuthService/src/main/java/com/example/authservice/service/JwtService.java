@@ -26,10 +26,10 @@ public class JwtService {
                 .retrieve()
                 .bodyToMono(RegisterResponse.class).block();
 
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", Objects.requireNonNull(registerResponse).getId().toString());
-        claims.put("role", Objects.requireNonNull(registerResponse).getRole());
-       return jwtUtil.createToken(claims);
+        return jwtUtil.createToken(
+                registerResponse.getId().toString(),
+                registerResponse.getRoles()
+        );
     }
 
     public String refreshToken(LoginRequest request) {
@@ -42,6 +42,7 @@ public class JwtService {
                 .retrieve()
                 .bodyToMono(UserDto.class)
                 .block();
+
         if(user == null){
             throw new RuntimeException("User is null");
         }
@@ -50,11 +51,11 @@ public class JwtService {
             throw new RuntimeException("Password is incorrect");
         }
 
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", user.getId().toString());
-        claims.put("role", user.getRole());
 
-        return jwtUtil.createToken(claims);
+        return jwtUtil.createToken(
+                user.getId().toString(),
+                List.of(user.getRole())
+        );
 
     }
 }

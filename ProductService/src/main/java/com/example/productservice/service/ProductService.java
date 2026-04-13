@@ -1,12 +1,16 @@
 package com.example.productservice.service;
 
 import com.example.productservice.dao.ProductRepository;
+import com.example.productservice.dto.PriceDto;
 import com.example.productservice.dto.ProductDto;
+import com.example.productservice.dto.request.RequestProductForUpdate;
 import com.example.productservice.entity.Product;
+import com.example.productservice.kafka.KafkaProducer;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,7 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductService {
     private final ProductRepository productRepository;
-    private final CacheManager cacheManager;
+    private final KafkaProducer kafkaProducer;
 
     public List<ProductDto> getAllProducts() {
         List<Product> products = (List<Product>) productRepository.findAll();
@@ -86,5 +90,29 @@ public class ProductService {
                 }
             });
         });
+    }
+
+    public BigDecimal getPriceById(Long id) {
+       Product product = productRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("Product doesn't exist")
+        );
+       return product.getPrice();
+    }
+
+    public void updateProduct(Long id, RequestProductForUpdate request) {
+
+        Product product = productRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("Product doesn't exist")
+        );
+        if(!request.getName().isBlank()) product.setName(request.getName());
+        if(!request.getDescription().isBlank()) product.setDescription(request.getDescription());
+        if(request.getPrice()!=null){
+            product.setPrice(request.getPrice());
+            kafkaProducer.sendMessage("product-price-updated", new PriceDto(product.getId(), product.getPrice()));
+        }
+
+        productRepository.save(product);
+
+
     }
 }

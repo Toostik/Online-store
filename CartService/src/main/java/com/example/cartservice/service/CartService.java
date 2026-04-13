@@ -1,6 +1,5 @@
 package com.example.cartservice.service;
 
-import com.example.cartservice.dao.CartItemsRepository;
 import com.example.cartservice.dao.CartRepository;
 import com.example.cartservice.dto.CartItemDto;
 import com.example.cartservice.entity.Cart;
@@ -8,12 +7,8 @@ import com.example.cartservice.entity.CartItem;
 import com.example.cartservice.kafka.KafkaProducer;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -24,29 +19,10 @@ import java.util.Map;
 @Transactional
 public class CartService {
     private final CartRepository cartRepository;
-    private final CartItemsRepository cartItemsRepository;
     private final String CART_TOPIC = "cart-checkout";
     private final KafkaProducer kafkaProducer;
-    @Autowired
-    @Qualifier("userServiceWebClient")
-    private final WebClient userServiceWebClient;
+    private final PriceService priceService;
 
-    @Autowired
-    @Qualifier("productServiceWebClient")
-    private final WebClient productServiceWebClient;
-
-    private void isUserExistException(Long id){
-        Boolean isUserExist = userServiceWebClient.get()
-                .uri("/api/users/{id}", id)
-                .retrieve()
-                .toBodilessEntity()
-                .map(response -> true)
-                .onErrorReturn(false)
-                .block();
-        if(!isUserExist){
-            throw new RuntimeException("User not found");
-        }
-    }
 
     @Cacheable(value = "cartDetail", key = "#id", unless = "#result == null")
     public List<CartItemDto> getCart(Long id) {
@@ -69,12 +45,7 @@ public class CartService {
 
         List<Long> ids = items.stream().map(CartItemDto::getProductId).toList();
 
-        Map<Long, BigDecimal> prices = productServiceWebClient.post()
-                .uri("/api/products/prices")
-                .bodyValue(ids)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Map<Long, BigDecimal>>() {
-                }).block();
+        Map<Long, BigDecimal> prices = priceService.getPrices(ids);
 
         List<CartItem> cartItems = items.stream()
                 .map(cartItemDto ->
@@ -96,12 +67,7 @@ public class CartService {
 
         List<Long> ids = items.stream().map(CartItemDto::getProductId).toList();
 
-        Map<Long, BigDecimal> prices = productServiceWebClient.post()
-                .uri("/api/products/prices")
-                .bodyValue(ids)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Map<Long, BigDecimal>>() {
-                }).block();
+        Map<Long, BigDecimal> prices = priceService.getPrices(ids);
 
         List<CartItem> cartItems = items.stream()
                 .map(cartItemDto ->

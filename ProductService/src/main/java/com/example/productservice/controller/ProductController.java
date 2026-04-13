@@ -1,6 +1,7 @@
 package com.example.productservice.controller;
 
 import com.example.productservice.dto.ProductDto;
+import com.example.productservice.dto.request.RequestProductForUpdate;
 import com.example.productservice.service.CategoryService;
 import com.example.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -35,5 +36,16 @@ public class ProductController {
     @PostMapping("/exists")
     public Boolean isProductsExists(@RequestBody List<Long> ids){
         return productService.isProductExists(ids);
+    }
+
+    @GetMapping("/{id}/price")
+    public BigDecimal getPriceById(@PathVariable Long id){
+        return productService.getPriceById(id);
+    }
+
+    @PutMapping("/{id}/update")
+    public ResponseEntity<?> updateProduct(@PathVariable Long id,@RequestBody RequestProductForUpdate request){
+        productService.updateProduct(id,request);
+        return ResponseEntity.ok().build();
     }
 }

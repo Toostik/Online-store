@@ -12,7 +12,7 @@ import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
-@Component
+//@Component
 public class JwtUtil {
     private final PublicKey publicKey;
 

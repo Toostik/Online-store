@@ -13,6 +13,7 @@ import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 
@@ -37,11 +38,12 @@ public class JwtUtil {
         }
     }
 
-    public String createToken(Map<String, Object> claims){
+    public String createToken(String userId, List<String> roles){
 
         try {
             return Jwts.builder()
-                    .setClaims(claims)
+                    .setSubject(userId)
+                    .claim("roles", roles)
                     .setIssuer("auth-service")
                     .setExpiration(new Date(System.currentTimeMillis() + 3600_000))
                     .signWith(privateKey)

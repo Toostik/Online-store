@@ -18,4 +18,5 @@ public interface ProductRepository extends CrudRepository<Product, Long> {
     List<Object[]> findPricesByIds(@Param("ids") List<Long> ids);
 
     boolean existsById(Long id);
+
 }

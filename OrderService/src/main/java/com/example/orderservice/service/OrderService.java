@@ -3,7 +3,6 @@ package com.example.orderservice.service;
 import com.example.orderservice.dao.OrderItemRepository;
 import com.example.orderservice.dao.OrderRepository;
 import com.example.orderservice.dto.*;
-import com.example.orderservice.dto.request.OrderItemRequest;
 import com.example.orderservice.entity.Order;
 import com.example.orderservice.entity.OrderItem;
 import com.example.orderservice.entity.Status;
@@ -11,14 +10,8 @@ import com.example.orderservice.kafka.KafkaJsonProducer;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -30,38 +23,12 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final KafkaJsonProducer kafkaJsonProducer;
-
-    @Autowired
-    @Qualifier("userServiceWebClient")
-    private final WebClient userServiceWebClient;
-
-    @Autowired
-    @Qualifier("productServiceWebClient")
-    private final WebClient productServiceWebClient;
-
-
-    public Boolean isProductsExists(List<Long> ids) {
-        Boolean isProductsExists = productServiceWebClient.post()
-                .uri("/api/products/exists")
-                .bodyValue(ids)
-                .retrieve()
-                .toBodilessEntity()
-                .map(response -> true)
-                .onErrorReturn(false)
-                .block();
-
-        return isProductsExists;
-    }
+    private final PriceService priceService;
+    private final UserService userService;
 
     public List<OrderDto> getAllOrders(Long id) {
 
-        Boolean isUserExist = userServiceWebClient.get()
-                .uri("/api/users/{id}", id)
-                .retrieve()
-                .toBodilessEntity()
-                .map(response -> true)
-                .onErrorReturn(false)
-                .block();
+        boolean isUserExist = userService.isUserExist(id);
 
         List<Order> orders;
         if (isUserExist) {
@@ -74,11 +41,9 @@ public class OrderService {
             throw new RuntimeException("User doesn't have orders");
         }
 
-        List<OrderDto> orderDtoList = orders.stream()
+        return orders.stream()
                 .map(Order::toDto)
                 .toList();
-
-        return orderDtoList;
     }
 
     public OrderDto createOrder(CartDto cart) {
@@ -93,12 +58,7 @@ public class OrderService {
         ).toList();
 
 
-        Map<Long, BigDecimal> prices = productServiceWebClient.post()
-                .uri("/api/products/prices")
-                .bodyValue(ids)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Map<Long, BigDecimal>>() {
-                }).block();
+        Map<Long, BigDecimal> prices = priceService.getPrices(ids);
 
 //        Из полученного списка товаров создаём список List<OrderItems>, сохраняем заказ
 //        и помещаем в заказ товары
