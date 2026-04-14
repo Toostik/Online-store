@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegisterRequest {
-    private String email;
-    private String username;
-    private String password;
-
+public class AuthResponse {
+    private String accessToken;
+    private String refreshToken;
 }

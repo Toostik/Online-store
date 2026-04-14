@@ -1,68 +1,142 @@
 package com.example.authservice.jwt;
 
-
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.InvalidKeyException;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.SignatureException;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+
 import java.io.InputStream;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
+import java.security.interfaces.ECPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
-
 
 @Component
 public class JwtUtil {
+
     private final PrivateKey privateKey;
+    private final ECPublicKey publicKey;
 
-    public JwtUtil(@Value("${app.private.key.path}") Resource resource) {
-        try (InputStream is = resource.getInputStream()) {
+    private final long accessExpiration;
+    private final long refreshExpiration;
 
-            String key = new String(is.readAllBytes());
-            key = key.replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replaceAll("\\s+", "");
+    private static final String ISSUER = "auth-service";
 
-            byte[] keyBytes = Base64.getDecoder().decode(key);
-            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
-            this.privateKey = KeyFactory.getInstance("EC").generatePrivate(spec);
-
+    public JwtUtil(
+            @Value("${app.private.key.path}") Resource privateResource,
+            @Value("${app.public.key.path}") Resource publicResource,
+            @Value("${app.jwt.access-expiration:900000}") long accessExpiration,     // 15 мин
+            @Value("${app.jwt.refresh-expiration:604800000}") long refreshExpiration // 7 дней
+    ) {
+        try {
+            this.privateKey = loadPrivateKey(privateResource);
+            this.publicKey = loadPublicKey(publicResource);
         } catch (Exception e) {
-            throw new RuntimeException("Ошибка загрузки PRIVATE KEY", e);
+            throw new RuntimeException("Ошибка загрузки ключей", e);
         }
+
+        this.accessExpiration = accessExpiration;
+        this.refreshExpiration = refreshExpiration;
     }
 
-    public String createToken(String userId, List<String> roles){
+    public String createAccessToken(String userId, List<String> roles) {
+        return buildToken(userId, roles, "access", accessExpiration);
+    }
+
+    public String createRefreshToken(String userId) {
+        return buildToken(userId, null, "refresh", refreshExpiration);
+    }
+
+    private String buildToken(String userId, List<String> roles, String type, long expiration) {
+
+        JwtBuilder builder = Jwts.builder()
+                .setSubject(userId)
+                .setIssuer(ISSUER)
+                .claim("type", type)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(privateKey, SignatureAlgorithm.ES256);
+
+        if (roles != null) {
+            builder.claim("roles", roles);
+        }
+
+        return builder.compact();
+    }
+
+    public Claims parseToken(String token) {
 
         try {
-            return Jwts.builder()
-                    .setSubject(userId)
-                    .claim("roles", roles)
-                    .setIssuer("auth-service")
-                    .setExpiration(new Date(System.currentTimeMillis() + 3600_000))
-                    .signWith(privateKey)
-                    .compact();
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(publicKey)
+                    .requireIssuer(ISSUER)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
 
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid claims for JWT creation: " + e.getMessage(), e);
+            return claims;
 
-        } catch (InvalidKeyException e) {
-            throw new RuntimeException("Invalid private key for ES256 algorithm", e);
+        } catch (ExpiredJwtException e) {
+            throw new RuntimeException("Token expired", e);
 
-        } catch (JwtException e) {
-            throw new RuntimeException("Failed to create JWT token: " + e.getMessage(), e);
+        } catch (SignatureException e) {
+            throw new RuntimeException("Invalid signature", e);
+
+        } catch (MalformedJwtException e) {
+            throw new RuntimeException("Malformed token", e);
 
         } catch (Exception e) {
-            throw new RuntimeException("Unexpected error while creating JWT token", e);
+            throw new RuntimeException("Invalid token", e);
         }
-
-
     }
 
+    public void validateAccessToken(String token) {
+        Claims claims = parseToken(token);
+
+        if (!"access".equals(claims.get("type"))) {
+            throw new RuntimeException("Not an access token");
+        }
+    }
+
+    public void validateRefreshToken(String token) {
+        Claims claims = parseToken(token);
+
+        if (!"refresh".equals(claims.get("type"))) {
+            throw new RuntimeException("Not a refresh token");
+        }
+    }
+
+    private PrivateKey loadPrivateKey(Resource resource) throws Exception {
+        String key = readKey(resource);
+
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        return KeyFactory.getInstance("EC")
+                .generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+    }
+
+    private ECPublicKey loadPublicKey(Resource resource) throws Exception {
+        String key = readKey(resource);
+
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        return (ECPublicKey) KeyFactory.getInstance("EC")
+                .generatePublic(new X509EncodedKeySpec(keyBytes));
+    }
+
+    private String readKey(Resource resource) throws Exception {
+        try (InputStream is = resource.getInputStream()) {
+            String key = new String(is.readAllBytes());
+
+            return key.replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replace("-----BEGIN PUBLIC KEY-----", "")
+                    .replace("-----END PUBLIC KEY-----", "")
+                    .replaceAll("\\s+", "");
+        }
+    }
 }

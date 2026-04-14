@@ -39,12 +39,12 @@ public class PaymentService {
             payment.setStatus(Status.PAYED);
             paymentRepository.save(payment);
 
-            kafkaProducer.sendMessage( "orders-paid", payment.toDto());
+            kafkaProducer.sendMessage( "payment-completed", payment.toDto());
         } else {
             payment.setStatus(Status.FAILED);
             paymentRepository.save(payment);
 
-            kafkaProducer.sendMessage("orders-failed", payment.toDto());
+            kafkaProducer.sendMessage("payment-failed", payment.toDto());
         }
     }
 }

@@ -1,10 +1,7 @@
 package com.example.userservice.controller;
 
-import com.example.userservice.dto.CurrentUserDto;
 import com.example.userservice.dto.UserDto;
 import com.example.userservice.dto.request.RegisterRequest;
-import com.example.userservice.dto.request.RegisterResponse;
-import com.example.userservice.entity.User;
 import com.example.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,20 +13,18 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserService userService;
 
-    @GetMapping("/me")
-    public ResponseEntity<CurrentUserDto> getCurrentUser(@RequestHeader("X-User-Id") Long userId){
-        return ResponseEntity.ok(userService.getCurrentUser(userId));
+    @GetMapping("/id/{id}")
+    public ResponseEntity<UserDto> getUserById(@PathVariable("id") Long userId){
+        return ResponseEntity.ok(userService.getUser(userId));
     }
-    @GetMapping("/{id}")
-    public ResponseEntity<CurrentUserDto> getUser(@PathVariable("id") Long userId){
-        return ResponseEntity.ok(userService.getCurrentUser(userId));
-    }
-    @GetMapping("/by-email")
-    public ResponseEntity<UserDto> getUser(@RequestParam String email){
+
+    @GetMapping("/email/{email}")
+    public ResponseEntity<UserDto> getUserByEmail(@PathVariable String email){
         return ResponseEntity.ok(userService.getUserByEmail(email));
     }
+
     @PostMapping("/create")
-    public ResponseEntity<RegisterResponse> createUser(@RequestBody RegisterRequest request){
+    public ResponseEntity<UserDto> createUser(@RequestBody RegisterRequest request){
         return ResponseEntity.ok(userService.createUser(request));
     }
 }

@@ -1,61 +1,92 @@
 package com.example.authservice.service;
 
-import com.example.authservice.dto.UserDto;
-import com.example.authservice.dto.request.LoginRequest;
-import com.example.authservice.dto.request.RegisterRequest;
-import com.example.authservice.dto.request.RegisterResponse;
+import com.example.authservice.dto.request.AuthResponse;
 import com.example.authservice.jwt.JwtUtil;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.*;
+import java.time.Duration;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class JwtService {
+
     private final JwtUtil jwtUtil;
-    private final WebClient userServiceWebClient;
-    private final PasswordEncoder passwordEncoder;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final UserService userService;
 
-    public String createToken(RegisterRequest request) {
-       RegisterResponse registerResponse = userServiceWebClient.post()
-                .uri("/api/users/create")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(RegisterResponse.class).block();
+    private static final String REFRESH_PREFIX = "refresh:";
 
-        return jwtUtil.createToken(
-                registerResponse.getId().toString(),
-                registerResponse.getRoles()
+    public AuthResponse generateTokens(String userId, List<String> roles) {
+
+        String accessToken = jwtUtil.createAccessToken(userId, roles);
+        String refreshToken = jwtUtil.createRefreshToken(userId);
+
+        redisTemplate.opsForValue().set(
+                REFRESH_PREFIX + userId,
+                refreshToken,
+                Duration.ofDays(7)
         );
+
+        return new AuthResponse(accessToken, refreshToken);
     }
 
-    public String refreshToken(LoginRequest request) {
+    public AuthResponse refresh(String refreshToken) {
 
-        UserDto user = userServiceWebClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/api/users/by-email")
-                        .queryParam("email", request.getEmail())
-                        .build())
-                .retrieve()
-                .bodyToMono(UserDto.class)
-                .block();
+        jwtUtil.validateRefreshToken(refreshToken);
 
-        if(user == null){
-            throw new RuntimeException("User is null");
+        Claims claims = jwtUtil.parseToken(refreshToken);
+        String userId = claims.getSubject();
+
+        Object storedObj = redisTemplate.opsForValue().get(REFRESH_PREFIX + userId);
+
+        if (storedObj == null) {
+            throw new RuntimeException("Refresh token not found (user logged out?)");
         }
 
-        if(!passwordEncoder.matches(request.getPassword(), user.getPassword())){
-            throw new RuntimeException("Password is incorrect");
+        String stored = storedObj.toString();
+
+        if (!refreshToken.equals(stored)) {
+            throw new RuntimeException("Invalid refresh token");
         }
 
 
-        return jwtUtil.createToken(
-                user.getId().toString(),
-                List.of(user.getRole())
+
+        List<String> roles = userService.getRoles(Long.valueOf(userId));
+
+        return new AuthResponse(jwtUtil.createAccessToken(userId, roles), refreshToken);
+    }
+
+    public void logout(String refreshToken) {
+
+        jwtUtil.validateRefreshToken(refreshToken);
+
+        Claims claims = jwtUtil.parseToken(refreshToken);
+        String userId = claims.getSubject();
+
+        if (redisTemplate.hasKey(REFRESH_PREFIX + userId)) {
+            redisTemplate.delete(REFRESH_PREFIX + userId);
+        }
+        
+    }
+
+    public String extractUserId(String token) {
+        return jwtUtil.parseToken(token).getSubject();
+    }
+
+    public String rotateRefreshToken(String userId) {
+
+        String newRefresh = jwtUtil.createRefreshToken(userId);
+
+        redisTemplate.opsForValue().set(
+                "refresh:" + userId,
+                newRefresh,
+                Duration.ofDays(7)
         );
 
+        return newRefresh;
     }
 }

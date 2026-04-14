@@ -1,11 +1,12 @@
 package com.example.userservice.entity;
 
-import com.example.userservice.dto.CurrentUserDto;
 import com.example.userservice.dto.UserDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -43,10 +44,4 @@ public class User {
         );
     }
 
-    public CurrentUserDto toCurrentUserDto() {
-        return new CurrentUserDto(
-                email,
-                username
-        );
-    }
 }

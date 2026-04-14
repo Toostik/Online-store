@@ -1,18 +1,14 @@
 package com.example.userservice.dto.request;
 
-import com.example.userservice.entity.User;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class RegisterRequest {
-    private final String email;
-    private final String username;
-    private final String password;
-
-    public User toUser() {
-        return new User(
-                email,
-                username
-        );
-    }
+    private String email;
+    private String username;
+    private String password;
 }

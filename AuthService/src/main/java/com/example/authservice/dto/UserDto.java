@@ -1,12 +1,12 @@
 package com.example.authservice.dto;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class UserDto {
     private Long id;
     private String email;
@@ -14,8 +14,16 @@ public class UserDto {
     private String password;
     private String role;
 
-    public UserDto(String email, String username) {
+    @JsonCreator
+    public UserDto(@JsonProperty("id") Long id,
+                   @JsonProperty("email")String email,
+                   @JsonProperty("username") String username,
+                   @JsonProperty("password") String password,
+                   @JsonProperty("role")String role) {
+        this.id = id;
         this.email = email;
         this.username = username;
+        this.password = password;
+        this.role = role;
     }
 }

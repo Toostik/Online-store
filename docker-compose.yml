@@ -78,6 +78,7 @@ services:
     depends_on:
       - postgres
       - kafka
+      - redis
 
   user-service:
     image: maven:3.9.9-eclipse-temurin-21
@@ -91,6 +92,7 @@ services:
     depends_on:
       - postgres
       - kafka
+      - redis
 
   product-service:
     image: maven:3.9.9-eclipse-temurin-21
@@ -118,6 +120,7 @@ services:
     depends_on:
       - postgres
       - kafka
+      - redis
 
   order-service:
     image: maven:3.9.9-eclipse-temurin-21
@@ -131,6 +134,7 @@ services:
     depends_on:
       - postgres
       - kafka
+      - redis
 
   payment-service:
     image: maven:3.9.9-eclipse-temurin-21
@@ -144,6 +148,7 @@ services:
     depends_on:
       - postgres
       - kafka
+      - redis
 
   notification-service:
     image: maven:3.9.9-eclipse-temurin-21
@@ -157,6 +162,7 @@ services:
     depends_on:
       - postgres
       - kafka
+      - redis
 
 volumes:
   postgres_data:

@@ -21,7 +21,7 @@ public class KafkaConsumer {
     private final OrderService orderService;
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaConsumer.class);
 
-    @KafkaListener(topics = "orders-paid", groupId = "order-consumers-group")
+    @KafkaListener(topics = "payment-completed", groupId = "order-consumers-group")
     public void consume(PaymentDto paymentDto, Acknowledgment ack){
         LOGGER.info("Payment received -> {}", paymentDto.getId());
         orderService.updateStatus(Status.CONFIRMED, paymentDto);

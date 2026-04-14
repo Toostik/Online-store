@@ -1,10 +1,8 @@
 package com.example.userservice.service;
 
 import com.example.userservice.dao.UserRepository;
-import com.example.userservice.dto.CurrentUserDto;
 import com.example.userservice.dto.UserDto;
 import com.example.userservice.dto.request.RegisterRequest;
-import com.example.userservice.dto.request.RegisterResponse;
 import com.example.userservice.entity.Role;
 import com.example.userservice.entity.User;
 import com.example.userservice.kafka.KafkaJsonProducer;
@@ -14,7 +12,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,18 +21,20 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final KafkaJsonProducer kafkaJsonProducer;
 
-    public RegisterResponse createUser(RegisterRequest request){
-        User user = request.toUser();
+    public UserDto createUser(RegisterRequest request){
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.USER);
         userRepository.save(user);
-        kafkaJsonProducer.sendMessage(user.toCurrentUserDto());
-        return new RegisterResponse(user.getId(), List.of(user.getRole().name()));
+        kafkaJsonProducer.sendMessage(user.toDto());
+        return user.toDto();
     }
 
-    public CurrentUserDto getCurrentUser(Long userId) {
+    public UserDto getUser(Long userId) {
        User user = userRepository.getUserById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-       return user.toCurrentUserDto();
+       return user.toDto();
     }
 
     public UserDto getUserByEmail(String email) {
