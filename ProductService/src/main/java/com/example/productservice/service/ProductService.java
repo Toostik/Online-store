@@ -132,4 +132,8 @@ public class ProductService {
         productRepository.save(product);
         return product.toDto();
     }
+
+    public void deleteProduct(Long id) {
+        productRepository.deleteById(id);
+    }
 }

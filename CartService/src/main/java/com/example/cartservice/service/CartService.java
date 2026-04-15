@@ -1,5 +1,6 @@
 package com.example.cartservice.service;
 
+import com.example.cartservice.dao.CartItemsRepository;
 import com.example.cartservice.dao.CartRepository;
 import com.example.cartservice.dto.CartItemDto;
 import com.example.cartservice.entity.Cart;
@@ -8,6 +9,8 @@ import com.example.cartservice.kafka.KafkaProducer;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,9 +22,11 @@ import java.util.Map;
 @Transactional
 public class CartService {
     private final CartRepository cartRepository;
+    private final CartItemsRepository cartItemsRepository;
     private final String CART_TOPIC = "cart-checkout";
     private final KafkaProducer kafkaProducer;
     private final PriceService priceService;
+
 
 
     @Cacheable(value = "cartDetail", key = "#id", unless = "#result == null")
@@ -91,5 +96,24 @@ public class CartService {
         cart.getItems().clear();
 
         cartRepository.save(cart);
+    }
+
+    public void deleteCart() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = Long.parseLong(auth.getName());
+
+        Cart cart = cartRepository.findCartByUserId(userId).orElseThrow(
+                () -> new RuntimeException("Cart not found!")
+        );
+
+        cartRepository.delete(cart);
+    }
+
+
+    public void deleteCartItem(Long id) {
+        CartItem cartItem = cartItemsRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("Cart item not found!")
+        );
+        cartItemsRepository.delete(cartItem);
     }
 }

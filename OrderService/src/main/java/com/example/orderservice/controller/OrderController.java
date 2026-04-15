@@ -18,12 +18,15 @@ import java.util.List;
 public class OrderController {
     private final OrderService orderService;
 
-    @GetMapping
+    @GetMapping("/my")
     public ResponseEntity<List<OrderDto>> getAllOrders(){
-        return ResponseEntity.ok(orderService.getAllOrders());
+        return ResponseEntity.ok(orderService.getAllOrdersOfCurrentUser());
     }
-
-    @PostMapping
+    @GetMapping("/{id}")
+    public ResponseEntity<OrderDto> getOrderById(@PathVariable Long id){
+        return ResponseEntity.ok(orderService.getOrderById(id));
+    }
+    @PostMapping("/create")
     public ResponseEntity<OrderDto> createOrder(@RequestBody CartDto cart){
         return ResponseEntity.ok(orderService.createOrder(cart));
     }
