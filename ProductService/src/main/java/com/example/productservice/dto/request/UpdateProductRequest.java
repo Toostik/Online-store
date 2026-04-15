@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RequestProductForUpdate {
+public class UpdateProductRequest {
     private String name;
     private String description;
     private BigDecimal price;

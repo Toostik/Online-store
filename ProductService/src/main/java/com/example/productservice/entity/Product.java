@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.parameters.P;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -32,12 +33,26 @@ public class Product {
     @Column(name = "created_at")
     private LocalDate createdAt;
 
-    @OneToMany(mappedBy = "product")
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     private List<ImageProduct> images;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;
+
+    public Product(String name, String description, BigDecimal price, Integer stockQuantity, List<ImageProduct> images, Category category) {
+        this.name = name;
+        this.description = description;
+        this.price = price;
+        this.stockQuantity = stockQuantity;
+        this.images = images;
+
+        for(ImageProduct image: images){
+            image.setProduct(this);
+        }
+
+        this.category = category;
+    }
 
     public ProductDto toDto() {
         return new ProductDto(

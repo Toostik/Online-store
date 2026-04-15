@@ -3,20 +3,22 @@ package com.example.productservice.service;
 import com.example.productservice.dao.ProductRepository;
 import com.example.productservice.dto.PriceDto;
 import com.example.productservice.dto.ProductDto;
-import com.example.productservice.dto.request.RequestProductForUpdate;
+import com.example.productservice.dto.request.CreateProductRequest;
+import com.example.productservice.dto.request.UpdateProductRequest;
+import com.example.productservice.entity.ImageProduct;
 import com.example.productservice.entity.Product;
 import com.example.productservice.kafka.KafkaProducer;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -99,7 +101,7 @@ public class ProductService {
        return product.getPrice();
     }
 
-    public void updateProduct(Long id, RequestProductForUpdate request) {
+    public void updateProduct(Long id, UpdateProductRequest request) {
 
         Product product = productRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("Product doesn't exist")
@@ -114,5 +116,20 @@ public class ProductService {
         productRepository.save(product);
 
 
+    }
+
+    public ProductDto createProduct(CreateProductRequest request) {
+
+        List<String> imagePaths = Optional.ofNullable(request.getImagePaths())
+                .orElse(List.of());
+
+        List<ImageProduct> images = imagePaths.stream()
+                .map(ImageProduct::new).collect(Collectors.toList());
+
+        Product product = request.toEntity(images);
+
+        product.setCreatedAt(LocalDate.now());
+        productRepository.save(product);
+        return product.toDto();
     }
 }

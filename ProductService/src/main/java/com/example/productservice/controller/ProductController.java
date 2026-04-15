@@ -1,12 +1,11 @@
 package com.example.productservice.controller;
 
 import com.example.productservice.dto.ProductDto;
-import com.example.productservice.dto.request.RequestProductForUpdate;
-import com.example.productservice.service.CategoryService;
+import com.example.productservice.dto.request.CreateProductRequest;
+import com.example.productservice.dto.request.UpdateProductRequest;
 import com.example.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -45,8 +44,13 @@ public class ProductController {
     }
 
     @PutMapping("/{id}/update")
-    public ResponseEntity<?> updateProduct(@PathVariable Long id,@RequestBody RequestProductForUpdate request){
+    public ResponseEntity<?> updateProduct(@PathVariable Long id,@RequestBody UpdateProductRequest request){
         productService.updateProduct(id,request);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<ProductDto> createProduct(@RequestBody CreateProductRequest request){
+        return ResponseEntity.ok(productService.createProduct(request));
     }
 }
