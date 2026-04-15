@@ -5,6 +5,7 @@ import com.example.userservice.dto.request.RegisterRequest;
 import com.example.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,6 +22,10 @@ public class UserController {
     @GetMapping("/email/{email}")
     public ResponseEntity<UserDto> getUserByEmail(@PathVariable String email){
         return ResponseEntity.ok(userService.getUserByEmail(email));
+    }
+    @GetMapping("/me")
+    public ResponseEntity<UserDto> getCurrentUser(){
+        return ResponseEntity.ok(userService.getCurrentUser());
     }
 
     @PostMapping("/create")

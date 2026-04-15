@@ -19,9 +19,8 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping
-    public ResponseEntity<List<OrderDto>> getAllOrders(@AuthenticationPrincipal Jwt jwt){
-        Long userId = Long.valueOf(jwt.getSubject());
-        return ResponseEntity.ok(orderService.getAllOrders(userId));
+    public ResponseEntity<List<OrderDto>> getAllOrders(){
+        return ResponseEntity.ok(orderService.getAllOrders());
     }
 
     @PostMapping

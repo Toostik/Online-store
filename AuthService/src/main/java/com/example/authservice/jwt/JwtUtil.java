@@ -31,8 +31,8 @@ public class JwtUtil {
     public JwtUtil(
             @Value("${app.private.key.path}") Resource privateResource,
             @Value("${app.public.key.path}") Resource publicResource,
-            @Value("${app.jwt.access-expiration:900000}") long accessExpiration,     // 15 мин
-            @Value("${app.jwt.refresh-expiration:604800000}") long refreshExpiration // 7 дней
+            @Value("${app.jwt.access-expiration}") long accessExpiration,// 4 часа
+            @Value("${app.jwt.refresh-expiration}") long refreshExpiration // 7 дней
     ) {
         try {
             this.privateKey = loadPrivateKey(privateResource);

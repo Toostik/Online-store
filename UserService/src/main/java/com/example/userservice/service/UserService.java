@@ -8,11 +8,15 @@ import com.example.userservice.entity.User;
 import com.example.userservice.kafka.KafkaJsonProducer;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -42,5 +46,13 @@ public class UserService {
                 () -> new RuntimeException("User not found")
         );
         return user.toDto();
+    }
+
+    public UserDto getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = Long.valueOf(auth.getName());
+        return userRepository.findById(userId).orElseThrow(
+                () -> new RuntimeException("User not found!")
+        ).toDto();
     }
 }

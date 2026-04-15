@@ -24,9 +24,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/create/**").permitAll()
-                        .requestMatchers("/api/users/id/**").permitAll()
                         .requestMatchers("/api/users/email/**").permitAll()
-                        .requestMatchers("/api/users/**").hasAnyRole("USER, ADMIN")
+                        .requestMatchers("/api/users/id/**").permitAll()
+                        .requestMatchers("/api/users/**").hasAnyRole("USER","ADMIN")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth

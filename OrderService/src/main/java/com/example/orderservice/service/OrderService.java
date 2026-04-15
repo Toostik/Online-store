@@ -11,6 +11,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -26,16 +27,10 @@ public class OrderService {
     private final PriceService priceService;
     private final UserService userService;
 
-    public List<OrderDto> getAllOrders(Long id) {
-
-        boolean isUserExist = userService.isUserExist(id);
-
+    public List<OrderDto> getAllOrders() {
+        UserDto user = userService.getCurrentUser();
         List<Order> orders;
-        if (isUserExist) {
-            orders = orderRepository.findAllByUserId(id);
-        } else {
-            throw new RuntimeException("User doesn't exist");
-        }
+        orders = orderRepository.findAllByUserId(user.getId());
 
         if (orders.isEmpty()) {
             throw new RuntimeException("User doesn't have orders");

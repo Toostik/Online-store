@@ -19,7 +19,7 @@ import java.util.Map;
 public class ProductController {
     private final ProductService productService;
 
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<ProductDto>> getAllProducts(){
         return ResponseEntity.ok(productService.getAllProducts());
     }
@@ -28,6 +28,7 @@ public class ProductController {
     public ResponseEntity<ProductDto> getProductById(@PathVariable("id") Long productId){
         return ResponseEntity.ok(productService.getProductById(productId));
     }
+
     @PostMapping("/prices")
     public Map<Long, BigDecimal> getPrices(@RequestBody List<Long> ids){
         return productService.getPrices(ids);
