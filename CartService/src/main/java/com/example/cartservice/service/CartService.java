@@ -2,20 +2,29 @@ package com.example.cartservice.service;
 
 import com.example.cartservice.dao.CartItemsRepository;
 import com.example.cartservice.dao.CartRepository;
+import com.example.cartservice.dto.CartDto;
 import com.example.cartservice.dto.CartItemDto;
+import com.example.cartservice.dto.request.CheckProductRequest;
+import com.example.cartservice.dto.request.CheckProductResponse;
+import com.example.cartservice.dto.request.ProductAvailability;
 import com.example.cartservice.entity.Cart;
 import com.example.cartservice.entity.CartItem;
 import com.example.cartservice.kafka.KafkaProducer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +34,10 @@ public class CartService {
     private final CartItemsRepository cartItemsRepository;
     private final String CART_TOPIC = "cart-checkout";
     private final KafkaProducer kafkaProducer;
-    private final PriceService priceService;
+    private final ProductService productService;
+    private final RedisTemplate<String, Object> redisTemplate;
+    @Autowired
+    private final ObjectMapper objectMapper;
 
 
 
@@ -50,7 +62,7 @@ public class CartService {
 
         List<Long> ids = items.stream().map(CartItemDto::getProductId).toList();
 
-        Map<Long, BigDecimal> prices = priceService.getPrices(ids);
+        Map<Long, BigDecimal> prices = productService.getPrices(ids);
 
         List<CartItem> cartItems = items.stream()
                 .map(cartItemDto ->
@@ -72,7 +84,7 @@ public class CartService {
 
         List<Long> ids = items.stream().map(CartItemDto::getProductId).toList();
 
-        Map<Long, BigDecimal> prices = priceService.getPrices(ids);
+        Map<Long, BigDecimal> prices = productService.getPrices(ids);
 
         List<CartItem> cartItems = items.stream()
                 .map(cartItemDto ->
@@ -87,20 +99,59 @@ public class CartService {
         cartRepository.save(cart);
     }
 
-    public void createOrder(Long id) {
-        Cart cart = cartRepository.findCartByUserId(id).orElseThrow(() ->
-                new RuntimeException("Cart doesn't exist"));
+    public void createOrder() {
+        CartDto cartDto = getCartByCurrentUser();
+        List<CartItemDto> items = cartDto.getItems();
 
-        kafkaProducer.sendMessage(CART_TOPIC, cart.toDto());
+        Map<Long, Integer> products =  items.stream()
+                        .collect(Collectors.toMap(
+                                CartItemDto::getProductId,
+                                CartItemDto::getQuantity
+                        ));
 
-        cart.getItems().clear();
+        CheckProductRequest request = new CheckProductRequest();
+        request.setProducts(products);
+        CheckProductResponse response = productService.checkAvailability(request);
 
+        for (Map.Entry<Long, ProductAvailability> entry : response.getProductAvailability().entrySet()) {
+
+            Long productId = entry.getKey();
+            ProductAvailability availability = entry.getValue();
+
+            if (!availability.isExists()) {
+                throw new RuntimeException("Product " + productId + " not found");
+            }
+
+            if (!availability.isEnoughStock()) {
+                throw new RuntimeException("Not enough stock for product " + productId);
+            }
+        }
+
+        kafkaProducer.sendMessage(CART_TOPIC, cartDto);
+
+        clearCart(cartDto.getId());
+    }
+
+    private void clearCart(Long id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = Long.parseLong(auth.getName());
+        String key = "cart:" + userId;
+        redisTemplate.delete(key);
+
+        Cart cart = cartRepository.findCartByUserId(userId).orElseThrow(
+                () -> new RuntimeException("Cart not found!")
+        );
+        cart.setItems(null);
         cartRepository.save(cart);
     }
 
     public void deleteCart() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Long userId = Long.parseLong(auth.getName());
+
+        String key = "cart:" + userId;
+
+        redisTemplate.delete(key);
 
         Cart cart = cartRepository.findCartByUserId(userId).orElseThrow(
                 () -> new RuntimeException("Cart not found!")
@@ -115,5 +166,25 @@ public class CartService {
                 () -> new RuntimeException("Cart item not found!")
         );
         cartItemsRepository.delete(cartItem);
+    }
+
+    public CartDto getCartByCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = Long.parseLong(auth.getName());
+
+        String key = "cart:" + userId;
+
+        Object cachedCart = redisTemplate.opsForValue().get(key);
+
+        if(cachedCart == null){
+            Cart cartFromDb = cartRepository.findCartByUserId(userId).orElseThrow(
+                    () -> new RuntimeException("Cart not found")
+            );
+            String cartKey = "cart:" + userId;
+            redisTemplate.opsForValue().set(cartKey,cartFromDb.toDto(), Duration.ofHours(1));
+            return cartFromDb.toDto();
+        }
+
+        return objectMapper.convertValue(cachedCart, CartDto.class);
     }
 }

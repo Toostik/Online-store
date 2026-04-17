@@ -6,6 +6,7 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,4 +20,6 @@ public interface ProductRepository extends CrudRepository<Product, Long> {
 
     boolean existsById(Long id);
 
+    @Query("SELECT p.price FROM Product p WHERE p.id IN :id")
+    BigDecimal getPriceById(Long id);
 }

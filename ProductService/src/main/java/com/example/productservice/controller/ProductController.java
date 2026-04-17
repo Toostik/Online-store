@@ -1,9 +1,12 @@
 package com.example.productservice.controller;
 
 import com.example.productservice.dto.ProductDto;
+import com.example.productservice.dto.request.CheckProductRequest;
+import com.example.productservice.dto.request.CheckProductResponse;
 import com.example.productservice.dto.request.CreateProductRequest;
 import com.example.productservice.dto.request.UpdateProductRequest;
 import com.example.productservice.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +31,11 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductById(productId));
     }
 
+    @GetMapping("/check-availability")
+    public ResponseEntity<CheckProductResponse> getProductAvailability(@RequestBody CheckProductRequest request){
+        return ResponseEntity.ok(productService.getProductAvailability(request));
+    }
+
     @PostMapping("/prices")
     public Map<Long, BigDecimal> getPrices(@RequestBody List<Long> ids){
         return productService.getPrices(ids);
@@ -38,19 +46,19 @@ public class ProductController {
         return productService.isProductExists(ids);
     }
 
-    @GetMapping("/{id}/price")
+    @GetMapping("/price/{id}")
     public BigDecimal getPriceById(@PathVariable Long id){
         return productService.getPriceById(id);
     }
 
-    @PutMapping("/{id}/update")
+    @PutMapping("/update/{id}")
     public ResponseEntity<?> updateProduct(@PathVariable Long id,@RequestBody UpdateProductRequest request){
         productService.updateProduct(id,request);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/create")
-    public ResponseEntity<ProductDto> createProduct(@RequestBody CreateProductRequest request){
+    public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody CreateProductRequest request){
         return ResponseEntity.ok(productService.createProduct(request));
     }
 
@@ -59,5 +67,6 @@ public class ProductController {
         productService.deleteProduct(id);
         return ResponseEntity.ok().build();
     }
+
 
 }

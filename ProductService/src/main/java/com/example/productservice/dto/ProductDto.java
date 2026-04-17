@@ -1,9 +1,11 @@
 package com.example.productservice.dto;
 
+import com.example.productservice.entity.Product;
 import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.parameters.P;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -23,7 +25,15 @@ public class ProductDto implements Serializable {
     private String description;
     private BigDecimal price;
     private Integer stockQuantity;
-    private LocalDate createdAt;
+    private Long categoryId;
 
-
+    public Product toEntity(){
+        return new Product(
+                id,
+                name,
+                description,
+                price,
+                stockQuantity
+        );
+    }
 }

@@ -23,9 +23,9 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
-    @GetMapping("/{id}/products")
-    public ResponseEntity<?> getProductsByCategory(@PathVariable Long id){
-        return ResponseEntity.ok(categoryService.getProductsByCategory(id));
-    }
+//    @GetMapping("/{id}/products")
+//    public ResponseEntity<?> getProductsByCategory(@PathVariable Long id){
+//        return ResponseEntity.ok(categoryService.getProductsByCategory(id));
+//    }
 
 }

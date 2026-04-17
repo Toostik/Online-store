@@ -1,5 +1,7 @@
 package com.example.cartservice.service;
 
+import com.example.cartservice.dto.request.CheckProductRequest;
+import com.example.cartservice.dto.request.CheckProductResponse;
 import com.example.cartservice.feign.ProductClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +17,7 @@ import java.util.Map;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class PriceService {
+public class ProductService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ProductClient productClient;
@@ -38,4 +40,8 @@ public class PriceService {
         }
         return prices;
     }
+    public CheckProductResponse checkAvailability(CheckProductRequest request){
+        return productClient.getProductsAvailability(request);
+    }
+
 }

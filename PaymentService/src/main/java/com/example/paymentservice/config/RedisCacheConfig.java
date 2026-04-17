@@ -1,4 +1,4 @@
-package com.example.cartservice.config;
+package com.example.paymentservice.config;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,34 +20,6 @@ import java.time.Duration;
 @Configuration
 @EnableCaching
 public class RedisCacheConfig {
-
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate(
-            RedisConnectionFactory factory,
-            ObjectMapper objectMapper
-    ) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(factory);
-
-        GenericJackson2JsonRedisSerializer serializer =
-                new GenericJackson2JsonRedisSerializer(objectMapper);
-
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(serializer);
-
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(serializer);
-
-        return template;
-    }
-
-    @Bean
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return mapper;
-    }
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -77,5 +49,32 @@ public class RedisCacheConfig {
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
                 .build();
+    }
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(
+            RedisConnectionFactory factory,
+            ObjectMapper objectMapper
+    ) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+
+        GenericJackson2JsonRedisSerializer serializer =
+                new GenericJackson2JsonRedisSerializer(objectMapper);
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(serializer);
+
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(serializer);
+
+        return template;
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
     }
 }

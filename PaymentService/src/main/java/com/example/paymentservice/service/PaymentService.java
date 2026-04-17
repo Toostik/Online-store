@@ -2,13 +2,19 @@ package com.example.paymentservice.service;
 
 import com.example.paymentservice.dao.PaymentRepository;
 import com.example.paymentservice.dto.OrderDto;
+import com.example.paymentservice.dto.PaymentDto;
 import com.example.paymentservice.entity.Payment;
 import com.example.paymentservice.entity.Status;
 import com.example.paymentservice.kafka.KafkaProducer;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +23,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final KafkaProducer kafkaProducer;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public void createPayment(OrderDto orderDto) {
 
@@ -46,5 +53,27 @@ public class PaymentService {
 
             kafkaProducer.sendMessage("payment-failed", payment.toDto());
         }
+    }
+
+    public PaymentDto getPaymentByTransactionId(String id) {
+        Payment payment = paymentRepository.getPaymentByTransactionId(id).orElseThrow(
+                () -> new RuntimeException("Payment not found!")
+        );
+
+        return payment.toDto();
+    }
+
+    public PaymentDto getPaymentById(Long id) {
+        Payment payment = paymentRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("Payment not found!")
+        );
+        return payment.toDto();
+    }
+
+    public List<PaymentDto> getAllPaymentsByOrderId(Long orderId) {
+        return paymentRepository.findAllByOrderId(orderId)
+                .stream()
+                .map(Payment::toDto)
+                .collect(Collectors.toList());
     }
 }

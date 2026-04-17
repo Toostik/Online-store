@@ -1,4 +1,4 @@
-package com.example.cartservice.config;
+package com.example.userservice.config;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;

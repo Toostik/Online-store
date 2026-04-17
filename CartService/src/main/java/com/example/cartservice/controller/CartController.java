@@ -17,17 +17,20 @@ import java.util.List;
 @RequestMapping("/api/carts")
 public class CartController {
     private final CartService cartService;
-    @GetMapping
-    public ResponseEntity<List<CartItemDto>> getCart(@RequestHeader("X-User-Id") Long id){
-        return ResponseEntity.ok(cartService.getCart(id));
+
+    @GetMapping("/my")
+    public ResponseEntity<CartDto> getCartByCurrentUser(){
+        return ResponseEntity.ok(cartService.getCartByCurrentUser());
     }
-    @PostMapping
+
+    @PostMapping("/create/cart")
     public ResponseEntity<?> createCart(@AuthenticationPrincipal Jwt jwt,
                                         @RequestBody List<CartItemDto> items){
         Long userId = Long.valueOf(jwt.getSubject());
         cartService.createCart(userId, items);
         return ResponseEntity.ok().build();
     }
+
     @PostMapping("/add")
     public ResponseEntity<?> addToCart(@AuthenticationPrincipal Jwt jwt,
                                         @RequestBody List<CartItemDto> items){
@@ -36,19 +39,18 @@ public class CartController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/create-order")
-    public ResponseEntity<?> createOrder(@AuthenticationPrincipal Jwt jwt){
-        Long userId = Long.valueOf(jwt.getSubject());
-        cartService.createOrder(userId);
+    @GetMapping("/create/order")
+    public ResponseEntity<?> createOrderByCurrentUser(){
+        cartService.createOrder();
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/remove/delete")
+    @DeleteMapping("/delete/cart")
     public void deleteCart(){
         cartService.deleteCart();
     }
 
-    @DeleteMapping("/remove/delete/item/{id}")
+    @DeleteMapping("/delete/item/{id}")
     public void deleteCartItem(@PathVariable Long id){
         cartService.deleteCartItem(id);
     }

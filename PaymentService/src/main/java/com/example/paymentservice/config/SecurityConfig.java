@@ -19,6 +19,9 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/payment/id/**",
+                                "/api/payment/transaction/**",
+                                "/api/payment/order/**").hasAnyRole("ADMIN", "SERVICE")
                         .requestMatchers("/api/payment/**").hasAnyRole("USER","ADMIN")
                         .anyRequest().authenticated()
                 )

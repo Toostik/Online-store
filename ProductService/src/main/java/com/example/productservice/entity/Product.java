@@ -22,22 +22,22 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
-    @Column(name = "name")
+    @Column(name = "name", nullable = false)
     private String name;
     @Column(name = "description")
     private String description;
-    @Column(name = "price")
+    @Column(name = "price", nullable = false)
     private BigDecimal price;
     @Column(name = "stock_quantity")
     private Integer stockQuantity;
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private LocalDate createdAt;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     private List<ImageProduct> images;
 
     @ManyToOne
-    @JoinColumn(name = "category_id")
+    @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
     public Product(String name, String description, BigDecimal price, Integer stockQuantity, List<ImageProduct> images, Category category) {
@@ -54,6 +54,14 @@ public class Product {
         this.category = category;
     }
 
+    public Product(Long id, String name, String description, BigDecimal price, Integer stockQuantity) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.price = price;
+        this.stockQuantity = stockQuantity;
+    }
+
     public ProductDto toDto() {
         return new ProductDto(
                 id,
@@ -61,7 +69,7 @@ public class Product {
                 description,
                 price,
                 stockQuantity,
-                createdAt
+                category.getId()
         );
     }
 }

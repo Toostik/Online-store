@@ -2,6 +2,7 @@ package com.example.productservice.entity;
 
 import com.example.productservice.dto.CategoryDto;
 import com.example.productservice.dto.CategoryTreeDto;
+import com.example.productservice.dto.ProductDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -34,6 +35,13 @@ public class Category {
     @OneToMany(mappedBy = "category")
     private List<Product> products;
 
+    public Category(Long id, String name, String imagePath, Category parent) {
+        this.id = id;
+        this.name = name;
+        this.imagePath = imagePath;
+        this.parent = parent;
+    }
+
     public CategoryTreeDto toTreeDto() {
         return new CategoryTreeDto(
                 id,
@@ -48,8 +56,7 @@ public class Category {
                 id,
                 name,
                 imagePath,
-                children.stream().map(Category::toDto).toList(),
-                products.stream().map(Product::toDto).toList()
+                parent.getId()
         );
     }
 }

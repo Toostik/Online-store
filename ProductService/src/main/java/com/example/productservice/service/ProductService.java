@@ -1,12 +1,15 @@
 package com.example.productservice.service;
 
+import com.example.productservice.dao.CategoryRepository;
 import com.example.productservice.dao.ProductRepository;
+import com.example.productservice.dto.CategoryDto;
 import com.example.productservice.dto.PriceDto;
 import com.example.productservice.dto.ProductDto;
-import com.example.productservice.dto.request.CreateProductRequest;
-import com.example.productservice.dto.request.UpdateProductRequest;
+import com.example.productservice.dto.request.*;
+import com.example.productservice.entity.Category;
 import com.example.productservice.entity.ImageProduct;
 import com.example.productservice.entity.Product;
+import com.example.productservice.exceptions.CategoryNotFoundException;
 import com.example.productservice.kafka.KafkaProducer;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +31,8 @@ import java.util.stream.Collectors;
 public class ProductService {
     private final ProductRepository productRepository;
     private final KafkaProducer kafkaProducer;
+    private final CategoryService categoryService;
+    private final CategoryRepository categoryRepository;
 
     public List<ProductDto> getAllProducts() {
         List<Product> products = (List<Product>) productRepository.findAll();
@@ -45,9 +51,11 @@ public class ProductService {
     @Cacheable(value = "productDetail", key = "#id", unless = "#result == null")
     public ProductDto getProductById(Long id) {
 
-        Product product = productRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Product by id{" + id + "}" + "doesn't exist")
-        );
+        Product product = productRepository.findById(id).orElse(null);
+
+        if (product == null) {
+            throw new RuntimeException("Product not found!");
+        }
 
         return product.toDto();
     }
@@ -94,11 +102,9 @@ public class ProductService {
         });
     }
 
+
     public BigDecimal getPriceById(Long id) {
-       Product product = productRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Product doesn't exist")
-        );
-       return product.getPrice();
+        return productRepository.getPriceById(id);
     }
 
     public void updateProduct(Long id, UpdateProductRequest request) {
@@ -106,8 +112,9 @@ public class ProductService {
         Product product = productRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("Product doesn't exist")
         );
-        if(!request.getName().isBlank()) product.setName(request.getName());
-        if(!request.getDescription().isBlank()) product.setDescription(request.getDescription());
+
+        if(request.getName() != null && !request.getName().isBlank()) product.setName(request.getName());
+        if(request.getDescription() != null && !request.getDescription().isBlank()) product.setDescription(request.getDescription());
         if(request.getPrice()!=null){
             product.setPrice(request.getPrice());
             kafkaProducer.sendMessage("product-price-updated", new PriceDto(product.getId(), product.getPrice()));
@@ -123,17 +130,54 @@ public class ProductService {
         List<String> imagePaths = Optional.ofNullable(request.getImagePaths())
                 .orElse(List.of());
 
-        List<ImageProduct> images = imagePaths.stream()
-                .map(ImageProduct::new).collect(Collectors.toList());
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new CategoryNotFoundException("Category not found!"));
 
-        Product product = request.toEntity(images);
+        List<ImageProduct> images = imagePaths.stream()
+                .map(ImageProduct::new)
+                .toList();
+
+        Product product;
+
+        if (!images.isEmpty()) {
+            product = request.toEntity(images, category);
+        } else {
+            product = request.toEntityWithoutImages(category);
+        }
 
         product.setCreatedAt(LocalDate.now());
+
         productRepository.save(product);
+
         return product.toDto();
     }
 
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
+    }
+
+    public CheckProductResponse getProductAvailability(CheckProductRequest request) {
+        Map<Long, Integer> products = request.getProducts();
+        CheckProductResponse response = new CheckProductResponse();
+        Map<Long, ProductAvailability> availabilityMap = new HashMap<>();
+        products.forEach((productId, quantity) ->
+        {
+            ProductAvailability availability = new ProductAvailability();
+            availability.setExists(true);
+            availability.setEnoughStock(true);
+            ProductDto productDto = getProductById(productId);
+
+            if (productDto == null) {
+                availability.setExists(false);
+                availability.setEnoughStock(false);
+            } else {
+                availability.setExists(true);
+                availability.setEnoughStock(productDto.getStockQuantity() >= quantity);
+            }
+
+            availabilityMap.put(productId, availability);
+        });
+        response.setProductAvailability(availabilityMap);
+        return response;
     }
 }

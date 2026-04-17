@@ -6,7 +6,7 @@ import com.example.orderservice.dto.*;
 import com.example.orderservice.entity.Order;
 import com.example.orderservice.entity.OrderItem;
 import com.example.orderservice.entity.Status;
-import com.example.orderservice.kafka.KafkaJsonProducer;
+import com.example.orderservice.kafka.KafkaProducer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -29,17 +29,19 @@ import java.util.*;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-    private final KafkaJsonProducer kafkaJsonProducer;
+    private final KafkaProducer kafkaJsonProducer;
     private final PriceService priceService;
     private final UserService userService;
     private final RedisTemplate<String, Object> redisTemplate;
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
+    public Long getCurrentUserId(){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return Long.parseLong(auth.getName());
+    }
     public List<OrderDto> getAllOrdersOfCurrentUser() {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = Long.parseLong(auth.getName());
+        Long userId = getCurrentUserId();
 
         String userOrdersKey = "user:" + userId + ":orders";
 
@@ -50,7 +52,7 @@ public class OrderService {
 
             List<Order> ordersFromDb = orderRepository.findAllByUserId(userId);
 
-            if (ordersFromDb.isEmpty()) {
+            if (ordersFromDb == null ||ordersFromDb.isEmpty()) {
                 return List.of();
             }
 
@@ -61,7 +63,6 @@ public class OrderService {
             for (OrderDto order : dtos) {
                 String orderKey = "order:" + order.getId();
                 redisTemplate.opsForValue().set(orderKey, order, Duration.ofHours(1));
-
                 redisTemplate.opsForList().rightPush(userOrdersKey, order.getId());
             }
 
@@ -88,7 +89,7 @@ public class OrderService {
         List<CartItemDto> items = cart.getItems();
 
         if (items.isEmpty()) {
-            return new OrderDto();
+            throw new RuntimeException("Cart is empty!");
         }
 
         List<Long> ids = items.stream().map(
@@ -98,6 +99,9 @@ public class OrderService {
 
         Map<Long, BigDecimal> prices = priceService.getPrices(ids);
 
+        if(prices == null || prices.isEmpty()){
+            throw new RuntimeException("Prices is empty!");
+        }
 //        Из полученного списка товаров создаём список List<OrderItems>, сохраняем заказ
 //        и помещаем в заказ товары
 
