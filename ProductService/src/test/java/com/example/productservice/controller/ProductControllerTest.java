@@ -88,7 +88,9 @@ public class ProductControllerTest {
     void createProduct_shouldReturnProductDto(){
         CreateProductRequest request = new CreateProductRequest();
         request.setName("Product");
-        request.setDescription("Description");
+        request.setPrice(new BigDecimal("1000"));
+        request.setStockQuantity(100);
+        request.setCategoryId(1L);
 
         ProductDto responseDto = new ProductDto();
         responseDto.setId(1L);

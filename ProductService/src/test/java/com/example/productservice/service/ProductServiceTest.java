@@ -1,5 +1,6 @@
 package com.example.productservice.service;
 
+import com.example.productservice.dao.CategoryRepository;
 import com.example.productservice.dao.ProductRepository;
 import com.example.productservice.dto.PriceDto;
 import com.example.productservice.dto.ProductDto;
@@ -7,6 +8,7 @@ import com.example.productservice.dto.request.CheckProductRequest;
 import com.example.productservice.dto.request.CheckProductResponse;
 import com.example.productservice.dto.request.ProductAvailability;
 import com.example.productservice.dto.request.UpdateProductRequest;
+import com.example.productservice.entity.Category;
 import com.example.productservice.entity.Product;
 import com.example.productservice.kafka.KafkaProducer;
 import org.junit.jupiter.api.Assertions;
@@ -33,16 +35,22 @@ public class ProductServiceTest {
     private ProductRepository productRepository;
     @Mock
     private KafkaProducer kafkaProducer;
+    @Mock
+    private CategoryRepository categoryRepository;
     @InjectMocks
     private ProductService productService;
 
     @Test
     void getProductById_shouldReturnProductDto_whenProductExists(){
         Long id = 1L;
+        Category category = new Category();
+        category.setId(1L);
 
         Product product = new Product();
         product.setId(id);
         product.setName("iPhone");
+        product.setPrice(new BigDecimal("2000"));
+        product.setCategory(category);
 
         when(productRepository.findById(id))
                 .thenReturn(Optional.of(product));
@@ -54,6 +62,7 @@ public class ProductServiceTest {
 
         verify(productRepository).findById(id);
     }
+
     @Test
     void getProductById_shouldReturnNull_whenProductNotExists(){
         Long id = 1L;
@@ -141,11 +150,17 @@ public class ProductServiceTest {
         verify(productRepository).findById(id);
         verify(productRepository).save(product);
     }
-    private Product createProduct(Long id, int stock, String name){
+
+    private Product createProduct(Long id, int stock, String name, BigDecimal price, Long categoryId){
+       Category category = new Category();
+       category.setId(categoryId);
+
         Product product = new Product();
         product.setId(id);
         product.setStockQuantity(stock);
         product.setName(name);
+        product.setPrice(price);
+        product.setCategory(category);
         return product;
     }
 
@@ -154,8 +169,8 @@ public class ProductServiceTest {
         Long id1 = 1L;
         Long id2 = 2L;
 
-        Product product1 = createProduct(id1, 5, "iPhone");
-        Product product2 = createProduct(id1, 3, "Samsung");
+        Product product1 = createProduct(id1, 5, "iPhone", new BigDecimal("2000"), id1);
+        Product product2 = createProduct(id1, 5, "Samsung", new BigDecimal("2000"), id2);
 
         when(productRepository.findById(id1)).thenReturn(Optional.of(product1));
         when(productRepository.findById(id2)).thenReturn(Optional.of(product2));
@@ -187,7 +202,7 @@ public class ProductServiceTest {
         Long id1 = 1L;
         Long id2 = 4L;
 
-        Product product1 = createProduct(id1, 5, "iPhone");
+        Product product1 = createProduct(id1, 5, "iPhone", new BigDecimal("2000"), id1);
 
 
         when(productRepository.findById(id1)).thenReturn(Optional.of(product1));
@@ -213,8 +228,8 @@ public class ProductServiceTest {
         Long id1 = 1L;
         Long id2 = 2L;
 
-        Product product1 = createProduct(id1, 5, "iPhone");
-        Product product2 = createProduct(id1, 3, "Samsung");
+        Product product1 = createProduct(id1, 5, "iPhone", new BigDecimal("2000"), id1);
+        Product product2 = createProduct(id2, 3, "Samsung", new BigDecimal("2000"), id2);
 
         when(productRepository.findById(id1)).thenReturn(Optional.of(product1));
         when(productRepository.findById(id2)).thenReturn(Optional.of(product2));

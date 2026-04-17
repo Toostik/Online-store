@@ -6,6 +6,7 @@ import com.example.productservice.dto.CategoryDto;
 import com.example.productservice.entity.Category;
 import com.example.productservice.entity.Product;
 import com.example.productservice.service.CategoryService;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -100,7 +102,7 @@ public class ProductIntegrationTest {
                 .andExpect(jsonPath("$.name").value("iPhone"))
                 .andExpect(jsonPath("$.price").value(1000))
                 .andExpect(jsonPath("$.stockQuantity").value(10))
-                .andExpect(jsonPath("$.categoryId").value(1));
+                .andExpect(jsonPath("$.categoryId").value(category.getId()));
 
         List<Product> products = (List<Product>) productRepository.findAll();
 
