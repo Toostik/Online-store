@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  order-service:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,8 +19,8 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Build
-        run: mvn clean compile
+      - name: Build order-service
+        run: cd order-service && mvn clean compile
 
-      - name: Run tests
-        run: mvn test
+      - name: Test order-service
+        run: cd order-service && mvn test
