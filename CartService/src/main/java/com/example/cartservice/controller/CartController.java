@@ -2,6 +2,7 @@ package com.example.cartservice.controller;
 
 import com.example.cartservice.dto.CartDto;
 import com.example.cartservice.dto.CartItemDto;
+import com.example.cartservice.service.CartQueryService;
 import com.example.cartservice.service.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,25 +18,22 @@ import java.util.List;
 @RequestMapping("/api/carts")
 public class CartController {
     private final CartService cartService;
+    private final CartQueryService cartQueryService;
 
     @GetMapping("/my")
     public ResponseEntity<CartDto> getCartByCurrentUser(){
-        return ResponseEntity.ok(cartService.getCartByCurrentUser());
+        return ResponseEntity.ok(cartQueryService.getCartByCurrentUser());
     }
 
     @PostMapping("/create/cart")
-    public ResponseEntity<?> createCart(@AuthenticationPrincipal Jwt jwt,
-                                        @RequestBody List<CartItemDto> items){
-        Long userId = Long.valueOf(jwt.getSubject());
-        cartService.createCart(userId, items);
+    public ResponseEntity<?> createCart(@RequestBody List<CartItemDto> items){
+        cartService.createCart(items);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> addToCart(@AuthenticationPrincipal Jwt jwt,
-                                        @RequestBody List<CartItemDto> items){
-        Long userId = Long.valueOf(jwt.getSubject());
-        cartService.addToCart(userId, items);
+    public ResponseEntity<?> addToCart(@RequestBody List<CartItemDto> items){
+        cartService.addToCart(items);
         return ResponseEntity.ok().build();
     }
 

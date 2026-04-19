@@ -9,19 +9,16 @@ import com.example.cartservice.dto.request.CheckProductResponse;
 import com.example.cartservice.dto.request.ProductAvailability;
 import com.example.cartservice.entity.Cart;
 import com.example.cartservice.entity.CartItem;
+import com.example.cartservice.exceptions.CartHasNotProductsException;
+import com.example.cartservice.exceptions.NotEnoughException;
+import com.example.cartservice.exceptions.NotExistException;
 import com.example.cartservice.kafka.KafkaProducer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,23 +33,12 @@ public class CartService {
     private final KafkaProducer kafkaProducer;
     private final ProductService productService;
     private final RedisTemplate<String, Object> redisTemplate;
-    @Autowired
-    private final ObjectMapper objectMapper;
+    private final SecurityService securityService;
+    private final CartQueryService cartQueryService;
 
+    public void createCart(List<CartItemDto> items) {
 
-
-    @Cacheable(value = "cartDetail", key = "#id", unless = "#result == null")
-    public List<CartItemDto> getCart(Long id) {
-
-            Cart cart = cartRepository.findCartByUserId(id).orElseThrow(
-                    () -> new RuntimeException("Cart not found")
-            );
-
-            return cart.getItems().stream().map(CartItem::toDto).toList();
-
-    }
-
-    public void createCart(Long userId, List<CartItemDto> items) {
+        Long userId = securityService.getCurrentUserId();
 
         if(cartRepository.existsByUserId(userId)){
             throw new RuntimeException("Cart exists");
@@ -64,19 +50,24 @@ public class CartService {
 
         Map<Long, BigDecimal> prices = productService.getPrices(ids);
 
+        if(prices == null || prices.isEmpty()){
+            throw new RuntimeException("Prices by product service is null");
+        }
+
         List<CartItem> cartItems = items.stream()
                 .map(cartItemDto ->
-                        cartItemDto.toEntity(cart, prices != null ? prices.get(cartItemDto.getProductId()) : null)
+                        cartItemDto.toEntity(cart, prices.get(cartItemDto.getProductId()))
                 )
                 .toList();
 
         cart.setUserId(userId);
         cart.setItems(cartItems);
         cartRepository.save(cart);
-
     }
 
-    public void addToCart(Long userId, List<CartItemDto> items){
+    public void addToCart(List<CartItemDto> items){
+
+        Long userId = securityService.getCurrentUserId();
 
         Cart cart = cartRepository.findCartByUserId(userId).orElseThrow(
                 () -> new RuntimeException("Cart doesn't exist")
@@ -86,9 +77,13 @@ public class CartService {
 
         Map<Long, BigDecimal> prices = productService.getPrices(ids);
 
+        if(prices == null || prices.isEmpty()){
+            throw new RuntimeException("Prices by product service is null");
+        }
+
         List<CartItem> cartItems = items.stream()
                 .map(cartItemDto ->
-                        cartItemDto.toEntity(cart, prices != null ? prices.get(cartItemDto.getProductId()) : null)
+                        cartItemDto.toEntity(cart, prices.get(cartItemDto.getProductId()))
                 )
                 .toList();
 
@@ -100,7 +95,16 @@ public class CartService {
     }
 
     public void createOrder() {
-        CartDto cartDto = getCartByCurrentUser();
+        CartDto cartDto = cartQueryService.getCartByCurrentUser();
+
+        if(cartDto == null){
+            throw new NotExistException("Cart doesn't exist");
+        }
+
+        if(cartDto.getItems() == null || cartDto.getItems().isEmpty()){
+            throw new CartHasNotProductsException("Cart has not products");
+        }
+
         List<CartItemDto> items = cartDto.getItems();
 
         Map<Long, Integer> products =  items.stream()
@@ -119,35 +123,35 @@ public class CartService {
             ProductAvailability availability = entry.getValue();
 
             if (!availability.isExists()) {
-                throw new RuntimeException("Product " + productId + " not found");
+                throw new NotExistException("Product " + productId + " not found");
             }
 
             if (!availability.isEnoughStock()) {
-                throw new RuntimeException("Not enough stock for product " + productId);
+                throw new NotEnoughException(productId);
             }
         }
 
         kafkaProducer.sendMessage(CART_TOPIC, cartDto);
 
-        clearCart(cartDto.getId());
+        clearCart();
     }
 
-    private void clearCart(Long id) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = Long.parseLong(auth.getName());
+    public void clearCart() {
+        Long userId = securityService.getCurrentUserId();
         String key = "cart:" + userId;
+
         redisTemplate.delete(key);
 
         Cart cart = cartRepository.findCartByUserId(userId).orElseThrow(
                 () -> new RuntimeException("Cart not found!")
         );
-        cart.setItems(null);
+
+        cart.setItems(List.of());
         cartRepository.save(cart);
     }
 
     public void deleteCart() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = Long.parseLong(auth.getName());
+        Long userId = securityService.getCurrentUserId();
 
         String key = "cart:" + userId;
 
@@ -168,23 +172,4 @@ public class CartService {
         cartItemsRepository.delete(cartItem);
     }
 
-    public CartDto getCartByCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = Long.parseLong(auth.getName());
-
-        String key = "cart:" + userId;
-
-        Object cachedCart = redisTemplate.opsForValue().get(key);
-
-        if(cachedCart == null){
-            Cart cartFromDb = cartRepository.findCartByUserId(userId).orElseThrow(
-                    () -> new RuntimeException("Cart not found")
-            );
-            String cartKey = "cart:" + userId;
-            redisTemplate.opsForValue().set(cartKey,cartFromDb.toDto(), Duration.ofHours(1));
-            return cartFromDb.toDto();
-        }
-
-        return objectMapper.convertValue(cachedCart, CartDto.class);
-    }
 }
