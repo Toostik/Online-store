@@ -384,4 +384,45 @@ public class CartServiceTest {
         verifyNoInteractions(redisTemplate);
         verify(cartRepository, never()).save(any());
     }
+
+    @Test
+    void clearCart_shouldClearCartItemsInRepository(){
+        Long userId = 1L;
+        when(securityService.getCurrentUserId()).thenReturn(userId);
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+
+        Cart cart = new Cart();
+        List<CartItem> items = new ArrayList<>();
+        items.add(new CartItem(10,1L, new BigDecimal("1000"),cart));
+        items.add(new CartItem(10,2L, new BigDecimal("1000"),cart));
+        cart.setId(1L);
+        cart.setItems(items);
+        when(cartRepository.findCartByUserId(userId)).thenReturn(Optional.of(cart));
+
+        cartService.clearCart();
+
+        ArgumentCaptor<Cart> captor = ArgumentCaptor.forClass(Cart.class);
+        verify(securityService).getCurrentUserId();
+        verify(redisTemplate).delete(anyString());
+        verify(cartRepository).findCartByUserId(userId);
+        verify(cartRepository).save(captor.capture());
+
+        Cart saved = captor.getValue();
+
+        assertTrue(saved.getItems().isEmpty());
+    }
+
+    @Test
+    void clearCart_shouldReturnException_whenCartNotExists(){
+        Long userId = 1L;
+        when(securityService.getCurrentUserId()).thenReturn(userId);
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+        when(cartRepository.findCartByUserId(userId)).thenReturn(Optional.empty());
+
+        assertThrows(NotExistException.class, () -> cartService.clearCart());
+        verify(securityService).getCurrentUserId();
+        verify(redisTemplate).delete(anyString());
+        verify(cartRepository).findCartByUserId(userId);
+        verify(cartRepository, never()).save(any());
+    }
 }

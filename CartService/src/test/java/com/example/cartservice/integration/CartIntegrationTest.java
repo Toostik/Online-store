@@ -35,8 +35,4 @@ public class CartIntegrationTest {
     @Autowired
     private ProductService productService;
 
-    @Test
-    void createCart_shouldReturnStatusOk(){
-
-    }
 }

@@ -137,13 +137,15 @@ public class CartService {
     }
 
     public void clearCart() {
+
         Long userId = securityService.getCurrentUserId();
+
         String key = "cart:" + userId;
 
         redisTemplate.delete(key);
 
         Cart cart = cartRepository.findCartByUserId(userId).orElseThrow(
-                () -> new RuntimeException("Cart not found!")
+                () -> new NotExistException("Cart not found!")
         );
 
         cart.setItems(List.of());
