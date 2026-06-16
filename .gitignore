@@ -1,0 +1,43 @@
+# ================== Maven / Java ==================
+**/target/
+!**/.mvn/wrapper/maven-wrapper.jar
+**/mvnw
+**/mvnw.cmd
+*.jar
+*.war
+*.ear
+
+# ================== Docker & Volumes ==================
+**/postgres_data/
+**/es_data/
+**/zookeeper_data/
+**/.dockerignore
+
+# ================== Logs & Temporary ==================
+*.log
+logs/
+temp/
+
+# ================== IDE ==================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+
+# ================== Secrets & Environment ==================
+*.env
+.env
+application-*.local.*
+application-*.local.properties
+
+# ================== OS ==================
+.DS_Store
+Thumbs.db
+
+# ================== Другое ==================
+node_modules/
+HELP.md
