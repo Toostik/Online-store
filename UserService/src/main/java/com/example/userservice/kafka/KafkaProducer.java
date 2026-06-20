@@ -18,9 +18,11 @@ public class KafkaProducer {
     }
 
     public void sendMessage(String topic, UserDto userDto){
+
         String key = String.valueOf(userDto.getId());
-        userDto.setEventId(UUID.randomUUID().toString());
+
         log.info("KAFKA_SEND_START topic={} key={}", topic, key);
+
         kafkaTemplate.send(topic, key, userDto)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
@@ -33,5 +35,6 @@ public class KafkaProducer {
                                 result.getRecordMetadata().offset());
                     }
                 });
+
     }
 }

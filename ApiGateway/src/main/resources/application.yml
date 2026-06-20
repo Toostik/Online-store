@@ -55,6 +55,26 @@ spring:
                 allowedHeaders: "*"
                 allowCredentials: true
 
+
+  kafka:
+    bootstrap-servers: kafka:9092
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+      acks: all
+      retries: 3
+
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        delivery.timeout.ms: 120000
+        request.timeout.ms: 30000
+
+    properties:
+      spring.json.add.type.headers: false
+
   datasource:
     url: jdbc:postgresql://localhost:5432/shop_db
     username: user
@@ -85,3 +105,48 @@ app:
   public:
     key:
       path: classpath:keys/public.pem
+
+rate-limit:
+
+  default-config:
+    capacity: 100
+    refill-rate: 1
+
+  endpoints:
+
+    "[/api/auth/login]":
+      capacity: 5
+      refill-rate: 0.1
+
+    "[/api/auth/refresh]":
+      capacity: 3
+      refill-rate: 0.1
+
+    "[/api/auth/logout]":
+      capacity: 3
+      refill-rate: 0.1
+
+    "[/api/auth/register]":
+      capacity: 3
+      refill-rate: 0.1
+
+    "[/api/products]":
+      capacity: 300
+      refill-rate: 5
+
+    "[/api/orders]":
+      capacity: 100
+      refill-rate: 1
+
+    "[/api/cart]":
+      capacity: 150
+      refill-rate: 2
+
+    "[/api/profile]":
+      capacity: 60
+      refill-rate: 1
+
+    "[/api/admin]":
+      capacity: 1000
+      refill-rate: 20
+

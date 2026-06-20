@@ -32,6 +32,15 @@
         <spring-cloud.version>2025.0.2</spring-cloud.version>
     </properties>
     <dependencies>
+<!--Cache-->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
         <!--        Monitoring-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -82,10 +91,7 @@
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
+
         <!--        Json-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

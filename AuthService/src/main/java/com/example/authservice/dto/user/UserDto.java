@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -15,10 +16,10 @@ public class UserDto {
     private String email;
     private String username;
     private String role;
-    private String eventId;
     private String avatarImagePath;
     private BigDecimal balance;
     private String phone;
     private LocalDateTime createdAt;
-
+    private List<AddressDto> addresses;
+    private String securityStatus;
 }

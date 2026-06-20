@@ -28,19 +28,6 @@ public class CartCommandController {
 
     }
 
-    @PostMapping("/items")
-    public ResponseEntity<Void> addItems(
-            @Valid
-            @RequestBody
-            List<CartItemDto> items
-    ) {
-
-        cartService.addItems(items);
-
-        return ResponseEntity.ok().build();
-
-    }
-
     @DeleteMapping
     public ResponseEntity<Void> deleteCart() {
 
@@ -56,6 +43,28 @@ public class CartCommandController {
     ) {
 
         cartService.deleteItem(id);
+
+        return ResponseEntity.ok().build();
+
+    }
+
+    @PutMapping("/items/{id}")
+    public ResponseEntity<Void> updateQuantity(
+            @PathVariable Long id,
+            @RequestParam Integer quantity
+    ) {
+        cartService.updateQuantity(id, quantity);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/items")
+    public ResponseEntity<Void> addItems(
+            @Valid
+            @RequestBody
+            List<CartItemDto> items
+    ) {
+
+        cartService.addItems(items);
 
         return ResponseEntity.ok().build();
 

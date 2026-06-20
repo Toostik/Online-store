@@ -10,10 +10,6 @@ public record CreateOrderRequest(
         String address,
         String apartment,
         String postalCode,
-        DeliveryMethod deliveryMethod,
-        PaymentMethod paymentMethod,
-        String cardNumber,
-        String expiryDate,
-        Integer cvv
+        DeliveryMethod deliveryMethod
 ) {
 }

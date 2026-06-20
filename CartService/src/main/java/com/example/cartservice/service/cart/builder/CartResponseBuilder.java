@@ -55,6 +55,7 @@ public class CartResponseBuilder {
             responses.add(
 
                     new CartItemResponse(
+                            item.getId(),
                             item.getProductId(),
                             product.name(),
                             product.brand(),

@@ -26,14 +26,14 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         log.info("AUTH_REGISTER request email={}", request.getEmail());
         return ResponseEntity
-                .ok(jwtService.registerAndGenerateTokens(request));
+                .ok(jwtService.register(request));
 
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("AUTH_LOGIN request email={}", request.getEmail());
-        return ResponseEntity.ok(jwtService.loginAndGenerateTokens(request));
+        return ResponseEntity.ok(jwtService.login(request));
     }
 
     @PostMapping("/refresh")

@@ -2,7 +2,6 @@ package com.example.userservice.dto.user;
 
 import com.example.userservice.dto.user.address.AddressDto;
 import com.example.userservice.dto.orders.RecentOrderItemDto;
-import com.example.userservice.entity.enums.UserSecurityStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,7 +14,7 @@ public record UserProfile(
         String phone,
         String avatarImage,
         LocalDateTime createdAt,
-        UserSecurityStatus securityStatus,
+        String securityStatus,
         List<AddressDto> savedAddresses,
         //Recent Products
         List<RecentOrderItemDto> recentOrderItems,

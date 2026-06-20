@@ -125,6 +125,7 @@ public class JwtUtil {
         if (!"refresh".equals(claims.get("type"))) {
             throw new TokenException("Not a refresh token");
         }
+
     }
 
     private PrivateKey loadPrivateKey(Resource resource) throws Exception {

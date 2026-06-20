@@ -7,13 +7,13 @@ import com.example.authservice.dto.request.RegisterRequest;
 import com.example.authservice.exceptions.token.TokenException;
 import com.example.authservice.exceptions.user.UserIdOrRoleException;
 import com.example.authservice.exceptions.user.UserServiceException;
+import com.example.authservice.jwt.cache.RefreshTokenCacheService;
 import com.example.authservice.service.integration.UserService;
 import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -26,13 +26,10 @@ import java.util.List;
 public class JwtService {
 
     private final JwtUtil jwtUtil;
-    private final RedisTemplate<String, Object> redisTemplate;
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenCacheService refreshTokenCacheService;
 
-    private static final String REFRESH_PREFIX = "refresh:";
-
-    public AuthResponse registerAndGenerateTokens(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request) {
         log.info("AUTH_REGISTER_START email={}", request.getEmail());
 
         UserDto user = userService.createUser(request);
@@ -52,17 +49,12 @@ public class JwtService {
 
         log.info("TOKENS_CREATED userId={}", user.getId());
 
-        redisTemplate.opsForValue().set(
-                REFRESH_PREFIX + user.getId(),
-                refreshToken,
-                Duration.ofDays(7)
-        );
-
+        refreshTokenCacheService.save(user.getId(), refreshToken);
 
         return new AuthResponse(accessToken, refreshToken);
     }
 
-    public AuthResponse loginAndGenerateTokens(LoginRequest request) {
+    public AuthResponse login(LoginRequest request) {
         log.info("AUTH_LOGIN_START email={}", request.getEmail());
 
         UserDto user = userService.authenticate(request);
@@ -76,18 +68,16 @@ public class JwtService {
         String accessToken = jwtUtil.createAccessToken(String.valueOf(user.getId()), List.of(user.getRole()));
         String refreshToken = jwtUtil.createRefreshToken(String.valueOf(user.getId()));
 
-        redisTemplate.opsForValue().set(
-                REFRESH_PREFIX + user.getId(),
-                refreshToken,
-                Duration.ofDays(7)
-        );
+        refreshTokenCacheService.save(user.getId(), refreshToken);
 
         log.info("AUTH_SUCCESS userId={}", user.getId());
         return new AuthResponse(accessToken, refreshToken);
     }
 
     public AuthResponse refresh(String refreshToken) {
+
         log.info("TOKEN_REFRESH_START");
+
         jwtUtil.validateRefreshToken(refreshToken);
 
         Claims claims = jwtUtil.parseToken(refreshToken);
@@ -95,13 +85,7 @@ public class JwtService {
 
         log.debug("TOKEN_PARSED userId={}", userId);
 
-        Object storedObj = redisTemplate.opsForValue().get(REFRESH_PREFIX + userId);
-
-        if (storedObj == null) {
-            throw new TokenException("Refresh token not found in cache (user logged out?)");
-        }
-
-        String stored = storedObj.toString();
+        String stored = refreshTokenCacheService.get(userId);
 
         if (!refreshToken.equals(stored)) {
             throw new TokenException("Invalid refresh token");
@@ -112,7 +96,9 @@ public class JwtService {
         if (roles == null || roles.isEmpty()) {
             throw new UserIdOrRoleException("Role or id is null");
         }
+
         log.info("TOKEN_REFRESH_SUCCESS userId={}", userId);
+
         return new AuthResponse(jwtUtil.createAccessToken(userId, roles), refreshToken);
     }
 
@@ -123,32 +109,10 @@ public class JwtService {
         Claims claims = jwtUtil.parseToken(refreshToken);
         String userId = claims.getSubject();
 
-        if (redisTemplate.hasKey(REFRESH_PREFIX + userId)) {
-            redisTemplate.delete(REFRESH_PREFIX + userId);
-        }
+        refreshTokenCacheService.remove(userId);
 
         log.info("User logged out by id -> {}", userId);
 
     }
-
-    public String extractUserId(String token) {
-        return jwtUtil.parseToken(token).getSubject();
-    }
-
-    public String rotateRefreshToken(String userId) {
-
-        log.info("ROTATE_REFRESH_TOKEN userId={}", userId);
-
-        String newRefresh = jwtUtil.createRefreshToken(userId);
-
-        redisTemplate.opsForValue().set(
-                "refresh:" + userId,
-                newRefresh,
-                Duration.ofDays(7)
-        );
-
-        return newRefresh;
-    }
-
 
 }

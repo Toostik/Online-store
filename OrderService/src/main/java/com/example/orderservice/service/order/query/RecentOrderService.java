@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -44,21 +45,21 @@ public class RecentOrderService {
                         PageRequest.of(0, size)
                 );
 
-        List<Long> ids = items.stream()
-                .map(OrderItem::getProductId)
+        Map<Long, OrderItem> itemMap =
+                items.stream()
+                        .collect(Collectors.toMap(
+                                OrderItem::getProductId,
+                                Function.identity(),
+                                (oldItem, newItem) -> oldItem,
+                                LinkedHashMap::new
+                        ));
+
+        List<Long> ids = itemMap.keySet()
+                .stream()
                 .toList();
 
         ProfileProducts profileProducts =
                 productService.getProductsById(ids);
-
-        Map<Long, OrderItem> itemMap =
-                items.stream()
-                        .collect(
-                                Collectors.toMap(
-                                        OrderItem::getProductId,
-                                        Function.identity()
-                                )
-                        );
 
         List<RecentOrderItemDto> recentItems =
                 profileProducts.productDtoList()

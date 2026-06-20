@@ -16,6 +16,7 @@ public class SecurityService {
             log.error("UNAUTHORIZED_USER");
             throw new UnauthorizedUserException();
         }
+
         log.debug("AUTH_USER_ID {}", auth.getName());
         return Long.parseLong(auth.getName());
     }

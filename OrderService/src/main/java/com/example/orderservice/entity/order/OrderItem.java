@@ -3,16 +3,15 @@ package com.example.orderservice.entity.order;
 import com.example.orderservice.dto.order.OrderItemDto;
 import com.example.orderservice.entity.enums.ItemShipmentStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 
-@Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
 @Table(name = "order_items")
 public class OrderItem {
     @Id

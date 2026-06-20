@@ -1,6 +1,7 @@
 package com.example.userservice.entity.user;
 
 import com.example.userservice.dto.user.UserDto;
+import com.example.userservice.dto.user.address.AddressDto;
 import com.example.userservice.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -59,11 +60,15 @@ public class User {
                 id,
                 email,
                 username,
-                phone,
-                createdAt,
                 role.name(),
                 avatarImagePath,
-                balance
+                balance,
+                phone,
+                createdAt,
+                addresses.stream()
+                        .map(u -> new AddressDto(u.getType(), u.getAddress()))
+                        .toList(),
+                security.getStatus().name()
         );
     }
 

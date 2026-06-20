@@ -1,11 +1,13 @@
 package com.example.userservice.dto.user;
 
+import com.example.userservice.dto.user.address.AddressDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -15,28 +17,10 @@ public class UserDto {
     private String email;
     private String username;
     private String role;
-    private String eventId;
     private String avatarImagePath;
     private BigDecimal balance;
     private String phone;
     private LocalDateTime createdAt;
-
-    public UserDto(Long id,
-                   String email,
-                   String username,
-                   String phone,
-                   LocalDateTime createdAt,
-                   String role,
-                   String avatarImagePath,
-                   BigDecimal balance
-    ) {
-        this.id = id;
-        this.email = email;
-        this.username = username;
-        this.phone = phone;
-        this.createdAt = createdAt;
-        this.role = role;
-        this.avatarImagePath = avatarImagePath;
-        this.balance = balance;
-    }
+    private List<AddressDto> addresses;
+    private String securityStatus;
 }

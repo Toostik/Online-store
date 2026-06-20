@@ -3,6 +3,7 @@ package com.example.cartservice.service.cart.command;
 import com.example.cartservice.dao.cart.CartRepository;
 import com.example.cartservice.dto.cart.CartItemDto;
 import com.example.cartservice.entity.cart.Cart;
+import com.example.cartservice.entity.cart.CartItem;
 import com.example.cartservice.exceptions.cart.CartExistsException;
 import com.example.cartservice.service.cart.cache.CartCacheService;
 import com.example.cartservice.service.cart.event.CartOutboxService;
@@ -27,6 +28,7 @@ public class CartCommandService {
     private final CartCreatorService cartCreatorService;
     private final CartFinderService cartFinderService;
 
+    private final CartItemUpdaterService cartItemUpdater;
     private final CartItemAdderService cartItemAdderService;
     private final CartItemRemoverService cartItemRemoverService;
     private final CartCleanerService cartCleanerService;
@@ -111,4 +113,19 @@ public class CartCommandService {
         cartCacheService.delete(userId);
     }
 
+    public void updateQuantity(Long id, Integer quantity) {
+
+        if (quantity <= 0) {
+            deleteItem(id);
+            return;
+        }
+
+        Long userId = cartItemUpdater.updateQuantity(
+                id,
+                quantity
+        );
+
+        cartCacheService.delete(userId);
+
+    }
 }

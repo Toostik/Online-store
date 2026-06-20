@@ -17,6 +17,7 @@ import java.util.Base64;
 
 @Configuration
 public class JwtConfig {
+
     @Bean
     public JwtAuthenticationConverter jwtAuthConverter() {
         JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
@@ -29,6 +30,7 @@ public class JwtConfig {
 
         return jwtConverter;
     }
+
     @Bean
     public JwtDecoder jwtDecoder(@Value("${app.public.key.path}") Resource resource) {
 

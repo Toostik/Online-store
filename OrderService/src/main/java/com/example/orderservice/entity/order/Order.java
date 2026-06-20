@@ -4,18 +4,17 @@ import com.example.orderservice.entity.address.Address;
 import com.example.orderservice.entity.delivery.Delivery;
 import com.example.orderservice.entity.enums.OrderStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
 @Table(name = "orders")
 public class Order {
     @Id

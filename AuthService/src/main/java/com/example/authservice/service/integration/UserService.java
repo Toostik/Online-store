@@ -28,13 +28,16 @@ public class UserService {
     }
 
     public UserDto createUser(RegisterRequest request) {
+
         log.info("Calling UserService: createUser email={}", request.getEmail());
+
         try {
             return userClient.createUser(request);
         }catch (Exception e){
             log.error("UserService call failed", e);
             throw new UserServiceException("User service exception");
         }
+
     }
 
     public UserDto getUserByEmail(String email) {

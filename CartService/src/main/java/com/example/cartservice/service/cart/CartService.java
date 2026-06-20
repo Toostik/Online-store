@@ -39,4 +39,11 @@ public class CartService {
     public void deleteItem(Long itemId) {
         cartCommandService.deleteItem(itemId);
     }
+
+    public void updateQuantity(Long id, Integer quantity) {
+
+        cartCommandService.updateQuantity(id, quantity);
+
+    }
+
 }
