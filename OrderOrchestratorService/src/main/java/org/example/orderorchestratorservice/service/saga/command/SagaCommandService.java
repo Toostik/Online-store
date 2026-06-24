@@ -3,10 +3,7 @@ package org.example.orderorchestratorservice.service.saga.command;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.events.inventory.*;
-import org.example.events.order.OrderAwaitingPaymentEvent;
-import org.example.events.order.OrderCancelledEvent;
-import org.example.events.order.OrderConfirmedEvent;
-import org.example.events.order.OrderCreatedEvent;
+import org.example.events.order.*;
 import org.example.events.payment.PaymentCompletedEvent;
 import org.example.events.payment.PaymentFailedEvent;
 import org.example.orderorchestratorservice.dao.event.ProcessedEventRepository;
@@ -57,7 +54,7 @@ public class SagaCommandService {
         if (!markProcessed(event.eventId())) {
 
             log.warn(
-                    "DUPLICATE_INVENTORY_RESERVED_SKIPPED eventId={}",
+                    "DUPLICATE_ORDER_CREATED_SKIPPED eventId={}",
                     event.eventId()
             );
 
@@ -94,7 +91,8 @@ public class SagaCommandService {
                         UUID.randomUUID().toString(),
                         event.correlationId(),
                         event.orderId(),
-                        event.items()
+                        event.items(),
+                        event.reservationKey()
                 );
 
         outboxService.publishInventoryReserveRequested(

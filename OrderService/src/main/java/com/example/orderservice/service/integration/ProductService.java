@@ -94,14 +94,7 @@ public class ProductService {
             name = "product-service",
             fallbackMethod = "fallbackPrices"
     )
-    public Map<Long, BigDecimal> loadPrices(CartResponse cart) {
-
-
-
-        List<Long> ids = cart.getItems()
-                .stream()
-                .map(CartItemResponse::getProductId)
-                .toList();
+    public Map<Long, BigDecimal> loadPrices(List<Long> ids) {
 
         Map<Long, BigDecimal> prices = getPrices(ids);
 

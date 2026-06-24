@@ -1,4 +1,4 @@
-package com.example.orderservice.dto.address;
+package org.example.events.order;
 
 public record AddressDto(
         String country,

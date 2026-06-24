@@ -1,12 +1,16 @@
 package com.example.productservice.service.inventory.command;
 
 import com.example.productservice.dao.event.ProcessedEventRepository;
+import com.example.productservice.dao.flashsale.FlashSaleReservationRepository;
 import com.example.productservice.dao.product.ProductRepository;
 import com.example.productservice.dao.reserve.OrderReservationRepository;
 import com.example.productservice.entity.event.ProcessedEvent;
+import com.example.productservice.entity.flashsale.FlashSaleReservation;
+import com.example.productservice.entity.flashsale.ReservationStatus;
 import com.example.productservice.entity.product.Product;
 import com.example.productservice.entity.reserve.OrderReservation;
 import com.example.productservice.entity.reserve.ReservedProduct;
+import com.example.productservice.exceptions.flashsale.FlashSaleReserveException;
 import com.example.productservice.exceptions.product.InsufficientStockException;
 import com.example.productservice.exceptions.product.ProductNotFoundException;
 import com.example.productservice.service.inventory.event.InventoryOutboxService;
@@ -32,6 +36,7 @@ public class InventoryCommandService {
     private final ProcessedEventRepository processedEventRepository;
     private final InventoryOutboxService inventoryOutboxService;
     private final OrderReservationRepository reservationRepository;
+    private final FlashSaleReservationRepository flashSaleReservationRepository;
 
     private boolean markProcessed(String eventId) {
 
@@ -61,6 +66,14 @@ public class InventoryCommandService {
             );
 
             return;
+        }
+
+        if(flashSaleReservationRepository.existsByReservationKey(event.reservationKey())){
+
+            FlashSaleReservation reservation = flashSaleReservationRepository.findByReservationKey(event.reservationKey()).orElseThrow();
+
+            reservation.setOrderId(event.orderId());
+
         }
 
         Map<Long, Integer> products =
@@ -114,7 +127,20 @@ public class InventoryCommandService {
                         )
                         .build();
 
+        if(event.reservationKey() != null){
+
+            FlashSaleReservation flashSaleReservation = flashSaleReservationRepository.findByReservationKey(event.reservationKey())
+                    .orElseThrow(() -> new FlashSaleReserveException("Reservation not found"))
+                    ;
+
+            flashSaleReservation.setOrderId(event.orderId());
+
+            flashSaleReservationRepository.save(flashSaleReservation);
+        }
+
         reservationRepository.save(reservation);
+
+
 
         InventoryReservedEvent reservedEvent =
                 new InventoryReservedEvent(
@@ -149,6 +175,22 @@ public class InventoryCommandService {
 
             return;
         }
+
+        if(flashSaleReservationRepository.existsByOrderId(event.orderId())){
+
+            FlashSaleReservation flashSaleReservation = flashSaleReservationRepository.findByOrderId(event.orderId())
+                    .orElseThrow();
+
+            flashSaleReservation.setStatus(ReservationStatus.CANCELLED);
+
+            log.info(
+                    "FLASH_SALE_CANCELLED orderId={} reservationKey={}",
+                    event.orderId(),
+                    flashSaleReservation.getReservationKey()
+            );
+
+        }
+
 
         OrderReservation reservation =
                 reservationRepository.findByOrderId(
@@ -190,7 +232,6 @@ public class InventoryCommandService {
         );
 
 
-
     }
 
     public void commitInventory(
@@ -205,6 +246,21 @@ public class InventoryCommandService {
             );
 
             return;
+        }
+
+        if(flashSaleReservationRepository.existsByOrderId(event.orderId())){
+
+            FlashSaleReservation flashSaleReservation = flashSaleReservationRepository.findByOrderId(event.orderId())
+                    .orElseThrow();
+
+            flashSaleReservation.setStatus(ReservationStatus.COMPLETED);
+
+
+            log.info(
+                    "FLASH_SALE_COMPLETED orderId={} reservationKey={}",
+                    event.orderId(),
+                    flashSaleReservation.getReservationKey()
+            );
         }
 
         OrderReservation reservation =

@@ -2,6 +2,7 @@ package org.example.events.order;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 public record OrderCreatedEvent(
         String eventId,
@@ -14,6 +15,8 @@ public record OrderCreatedEvent(
 
         BigDecimal totalAmount,
 
-        List<OrderItemEvent> items
+        List<OrderItemEvent> items,
+
+        UUID reservationKey
 ) {
 }

@@ -43,6 +43,7 @@ public class InventoryCommitRequestedConsumer {
                     event.eventId()
             );
         }
+
         catch (Exception e) {
 
             log.error(

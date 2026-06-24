@@ -52,8 +52,6 @@ public class RateLimitService {
                         if (whitelistService.isWhitelisted(
                                 "whitelist:user:" + id)) {
 
-                            log.info("SKIP USER RATE LIMIT");
-
                             return chain.filter(exchange);
                         }
 
@@ -77,8 +75,6 @@ public class RateLimitService {
 
                     if (whitelistService.isWhitelisted(
                             "whitelist:ip:" + ip)) {
-
-                        log.info("SKIP IP RATE LIMIT");
 
                         return chain.filter(exchange);
                     }
@@ -148,6 +144,8 @@ public class RateLimitService {
             ServerWebExchange exchange,
             Integer limit) throws JsonProcessingException {
 
+        long errorStart = System.currentTimeMillis();
+
         ErrorResponse response = ErrorResponse.builder()
                 .status(429)
                 .error("Too Many Requests")
@@ -170,17 +168,23 @@ public class RateLimitService {
 
         rateLimitMetricsService.incrementExceeded();
 
-        rateLimitEventProducer.send(
-                RateLimitExceededEvent.builder()
-                        .eventId(UUID.randomUUID())
-                        .userId(context.userId())
-                        .ip(context.ip())
-                        .endpoint(
-                                context.endpoint()
-                        )
-                        .limit(limit)
-                        .timestamp(Instant.now())
-                        .build()
+//
+//        rateLimitEventProducer.send(
+//                RateLimitExceededEvent.builder()
+//                        .eventId(UUID.randomUUID())
+//                        .userId(context.userId())
+//                        .ip(context.ip())
+//                        .endpoint(
+//                                context.endpoint()
+//                        )
+//                        .limit(limit)
+//                        .timestamp(Instant.now())
+//                        .build()
+//        );
+
+        log.info(
+                "429_RESPONSE {} ms",
+                System.currentTimeMillis() - errorStart
         );
 
         return exchange.getResponse()

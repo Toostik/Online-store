@@ -22,8 +22,6 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
             ServerWebExchange exchange,
             GatewayFilterChain chain) {
 
-        log.info("RATE LIMIT FILTER ENTER");
-
         return rateLimitService.filter(exchange, chain);
 
     }

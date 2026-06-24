@@ -24,6 +24,7 @@ import com.example.orderservice.service.order.event.OrderOutboxService;
 import com.example.orderservice.service.security.SecurityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.events.flashsale.FlashSaleReservationAndCheckoutEvent;
 import org.example.events.order.*;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -72,6 +73,40 @@ public class OrderCommandService {
         }
     }
 
+    private void publicateAndSaveCacheOrder(Order order, UUID reservationKey){
+
+        List<OrderItemEvent> items =
+                order.getItems()
+                        .stream()
+                        .map(item ->
+                                new OrderItemEvent(
+                                        item.getProductId(),
+                                        item.getQuantity()
+                                ))
+                        .toList();
+
+        OrderCreatedEvent orderCreatedEvent =
+                new OrderCreatedEvent(
+                        UUID.randomUUID().toString(),
+                        MDC.get("requestId"),
+                        order.getId(),
+                        order.getUserId(),
+                        order.getTotalAmount(),
+                        items,
+                        reservationKey
+                );
+
+        outboxService.publishCreated(orderCreatedEvent);
+
+        try {
+            cacheService.save(order);
+        }
+        catch (Exception ignored){
+        }
+
+    }
+
+
     public OrderDto createOrder(CreateOrderRequest request) {
 
         Long userId = securityService.getCurrentUserId();
@@ -113,8 +148,13 @@ public class OrderCommandService {
             }
         }
 
+        List<Long> ids = cart.getItems()
+                .stream()
+                .map(CartItemResponse::getProductId)
+                .toList();
+
         Map<Long, BigDecimal> prices =
-                productService.loadPrices(cart);
+                productService.loadPrices(ids);
 
         Order order =
                 builderService.build(
@@ -132,33 +172,7 @@ public class OrderCommandService {
         Order saved =
                 orderRepository.save(order);
 
-        List<OrderItemEvent> items =
-                order.getItems()
-                        .stream()
-                        .map(item ->
-                                new OrderItemEvent(
-                                        item.getProductId(),
-                                        item.getQuantity()
-                                ))
-                        .toList();
-
-        OrderCreatedEvent event =
-                new OrderCreatedEvent(
-                        UUID.randomUUID().toString(),
-                        MDC.get("requestId"),
-                        order.getId(),
-                        order.getUserId(),
-                        order.getTotalAmount(),
-                        items
-                );
-
-        outboxService.publishCreated(event);
-
-        try {
-            cacheService.save(saved);
-        }
-        catch (Exception ignored){
-        }
+        publicateAndSaveCacheOrder(saved, null);
 
         return orderMapper.toDto(saved);
     }
@@ -224,8 +238,6 @@ public class OrderCommandService {
                 OrderStatus.CONFIRMED
         );
 
-
-
         outboxService.publishConfirmed(event);
 
     }
@@ -261,6 +273,30 @@ public class OrderCommandService {
                 "ORDER_CANCELLED orderId={}",
                 order.getId()
         );
+
+    }
+
+    public void createOrderByFlashSale(FlashSaleReservationAndCheckoutEvent event) {
+
+        if (!markProcessed(event.eventId().toString())) {
+
+            log.warn(
+                    "DUPLICATE_FLASHSALE_RESERVATION_SKIPPED eventId={}",
+                    event.eventId()
+            );
+
+            return;
+        }
+
+        Order order = builderService.buildFlashSaleOrder(
+                event,
+                event.discountedPrice()
+        );
+
+        Order saved =
+                orderRepository.save(order);
+
+        publicateAndSaveCacheOrder(saved, event.reservationKey());
 
     }
 }
