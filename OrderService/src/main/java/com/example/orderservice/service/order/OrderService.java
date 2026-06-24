@@ -7,8 +7,8 @@ import com.example.orderservice.dto.order.request.OrderPaymentInfoResponse;
 import com.example.orderservice.service.order.command.OrderCommandService;
 import com.example.orderservice.service.order.query.OrderQueryService;
 import com.example.orderservice.service.order.query.RecentOrderService;
-import com.example.orderservice.service.order.status.OrderStatusService;
 import lombok.RequiredArgsConstructor;
+import org.example.events.flashsale.FlashSaleReservationAndCheckoutEvent;
 import org.example.events.order.OrderAwaitingPaymentEvent;
 import org.example.events.order.OrderCancelledEvent;
 import org.example.events.order.OrderConfirmedEvent;
@@ -22,7 +22,6 @@ public class OrderService {
 
     private final OrderCommandService commandService;
     private final OrderQueryService queryService;
-    private final OrderStatusService statusService;
     private final RecentOrderService recentOrderService;
 
     public OrderDto createOrder(CreateOrderRequest request) {
@@ -64,6 +63,10 @@ public class OrderService {
                 event
         );
 
+    }
+
+    public void createOrderByFlashSale(FlashSaleReservationAndCheckoutEvent event){
+        commandService.createOrderByFlashSale(event);
     }
 
 }

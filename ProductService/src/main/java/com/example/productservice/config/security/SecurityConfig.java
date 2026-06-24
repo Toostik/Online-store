@@ -33,6 +33,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/products/*").hasAnyRole("ADMIN", "USER")
                         .requestMatchers(HttpMethod.POST, "/api/products/*/images").hasAnyRole("ADMIN", "USER")
 
+                        .requestMatchers(HttpMethod.POST, "/api/flash-sales/*/reserve", "/api/flash-sales/*/checkout").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/api/flash-sales/").hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth

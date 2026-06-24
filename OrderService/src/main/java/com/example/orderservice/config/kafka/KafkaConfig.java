@@ -1,6 +1,7 @@
 package com.example.orderservice.config.kafka;
 
 import lombok.RequiredArgsConstructor;
+import org.example.events.flashsale.FlashSaleReservationAndCheckoutEvent;
 import org.example.events.order.OrderAwaitingPaymentEvent;
 import org.example.events.order.OrderCancelledEvent;
 import org.example.events.order.OrderConfirmedEvent;
@@ -33,6 +34,13 @@ public class KafkaConfig {
     orderCancelledKafkaListenerContainerFactory() {
 
         return creator.create(OrderCancelledEvent.class);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, FlashSaleReservationAndCheckoutEvent>
+    flashSaleReservationAndCheckoutEventKafkaListenerContainerFactory() {
+
+        return creator.create(FlashSaleReservationAndCheckoutEvent.class);
     }
 
 }

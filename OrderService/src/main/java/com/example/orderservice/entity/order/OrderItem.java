@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Entity
 @Table(name = "order_items")
+@Builder
 public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,19 +29,8 @@ public class OrderItem {
     @Column(name = "status")
     private ItemShipmentStatus status = ItemShipmentStatus.NOT_SHIPPED;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     private Order order;
-
-    public OrderItemDto toDto(){
-        return new OrderItemDto(
-                id,
-                productId,
-                quantity,
-                priceAtPurchase,
-                status
-        );
-    }
 
 }

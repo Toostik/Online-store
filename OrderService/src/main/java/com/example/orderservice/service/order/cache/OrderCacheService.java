@@ -24,8 +24,6 @@ public class OrderCacheService {
 
         Long userId = order.getUserId();
 
-
-
         redisTemplate.opsForList()
                 .rightPush(
                         OrderRedisKeys.userOrders(userId),

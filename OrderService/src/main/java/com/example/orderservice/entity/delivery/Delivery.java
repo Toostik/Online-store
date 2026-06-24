@@ -1,10 +1,10 @@
 package com.example.orderservice.entity.delivery;
 
-import com.example.orderservice.entity.enums.DeliveryMethod;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
+import org.example.events.order.DeliveryMethod;
 
 import java.math.BigDecimal;
 
