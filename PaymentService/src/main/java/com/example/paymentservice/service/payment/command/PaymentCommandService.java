@@ -1,19 +1,22 @@
 package com.example.paymentservice.service.payment.command;
 
+import com.example.paymentservice.dao.event.ProcessedEventRepository;
 import com.example.paymentservice.dao.payment.PaymentRepository;
-import com.example.paymentservice.dto.order.request.OrderPaymentInfoResponse;
-import com.example.paymentservice.dto.payment.event.PaymentCompletedEvent;
-import com.example.paymentservice.dto.payment.event.PaymentFailedEvent;
 import com.example.paymentservice.dto.payment.request.CreatePaymentRequest;
-import com.example.paymentservice.entity.enums.FailureReason;
-import com.example.paymentservice.entity.enums.PaymentFailureReason;
+
 import com.example.paymentservice.entity.enums.Status;
+import com.example.paymentservice.entity.event.ProcessedEvent;
 import com.example.paymentservice.entity.payment.Payment;
+import com.example.paymentservice.exceptions.PaymentNotFoundException;
 import com.example.paymentservice.service.event.PaymentOutboxService;
-import com.example.paymentservice.service.integration.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.events.enums.PaymentFailureReason;
+import org.example.events.order.OrderAwaitingPaymentEvent;
+import org.example.events.payment.PaymentCompletedEvent;
+import org.example.events.payment.PaymentFailedEvent;
 import org.slf4j.MDC;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,37 +30,37 @@ public class PaymentCommandService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentOutboxService outboxService;
-    private final OrderService orderService;
+    private final ProcessedEventRepository processedEventRepository;
+
+    private boolean markProcessed(String eventId) {
+
+        try {
+
+            ProcessedEvent save = processedEventRepository.save(
+                    new ProcessedEvent(eventId)
+            );
+
+            return true;
+        }
+        catch (DataIntegrityViolationException e) {
+
+            return false;
+        }
+    }
 
     public void pay(
             Long orderId,
             CreatePaymentRequest request
     ) {
 
-        if (paymentRepository.existsByOrderId(orderId)) {
-            throw new IllegalStateException(
-                    "Payment already exists"
-            );
-        }
-
-        OrderPaymentInfoResponse order = orderService.getOrderPaymentInfo(orderId);
-
-
-        Payment payment = Payment.builder()
-                .userId(order.userId())
-                .orderId(order.orderId())
-                .amount(order.totalAmount())
-                .paymentMethod(request.paymentMethod())
-                .status(Status.PROCESSING)
-                .transactionId(UUID.randomUUID().toString())
-                .build();
-
-        paymentRepository.save(
-                payment
+        Payment payment = paymentRepository.findByOrderIdAndStatus(
+                orderId,
+                Status.PROCESSING
+        ).orElseThrow(
+                () -> new PaymentNotFoundException("Payment not found")
         );
 
-        // имитация успешной оплаты
-
+        payment.setPaymentMethod(request.paymentMethod());
         payment.setStatus(
                 Status.COMPLETED
         );
@@ -89,30 +92,16 @@ public class PaymentCommandService {
             CreatePaymentRequest request
     ) {
 
-        if (paymentRepository.existsByOrderId(orderId)) {
-            throw new IllegalStateException(
-                    "Payment already exists"
-            );
-        }
+//        OrderPaymentInfoResponse order = orderService.getOrderPaymentInfo(orderId);
 
-        OrderPaymentInfoResponse order = orderService.getOrderPaymentInfo(orderId);
-
-
-        Payment payment = Payment.builder()
-                .userId(order.userId())
-                .orderId(order.orderId())
-                .amount(order.totalAmount())
-                .paymentMethod(request.paymentMethod())
-                .status(Status.PROCESSING)
-                .transactionId(UUID.randomUUID().toString())
-                .build();
-
-        paymentRepository.save(
-                payment
+        Payment payment = paymentRepository.findByOrderIdAndStatus(
+                orderId,
+                Status.PROCESSING
+        ).orElseThrow(
+                () -> new PaymentNotFoundException("Payment not found")
         );
 
-        // имитация успешной оплаты
-
+        payment.setPaymentMethod(request.paymentMethod());
         payment.setStatus(
                 Status.FAILED
         );
@@ -123,7 +112,7 @@ public class PaymentCommandService {
                         MDC.get("requestId"),
                         payment.getOrderId(),
                         payment.getUserId(),
-                        FailureReason.PAYMENT_DECLINED
+                        PaymentFailureReason.PAYMENT_DECLINED
                 );
 
         outboxService.publishFailed(
@@ -135,6 +124,30 @@ public class PaymentCommandService {
                 payment.getOrderId(),
                 payment.getTransactionId()
         );
+
+    }
+
+    public void awaitingPayment(OrderAwaitingPaymentEvent event) {
+
+        if (!markProcessed(event.eventId())) {
+
+            log.warn(
+                    "DUPLICATE_AWAITING_PAYMENT_ORDER_SKIPPED eventId={}",
+                    event.eventId()
+            );
+
+            return;
+        }
+
+        Payment payment = Payment.builder()
+                .userId(event.userId())
+                .orderId(event.orderId())
+                .status(Status.PROCESSING)
+                .amount(event.totalAmount())
+                .transactionId(UUID.randomUUID().toString())
+                .build();
+
+        paymentRepository.save(payment);
 
     }
 

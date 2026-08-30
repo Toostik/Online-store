@@ -5,7 +5,7 @@ export const options = {
     scenarios: {
         flashsale: {
             executor: 'shared-iterations',
-            vus: 10000,
+            vus: 1000,
             iterations: 10000,
             maxDuration: '1m'
         }
@@ -20,7 +20,7 @@ export default function () {
 
     const params = {
         headers: {
-            'Authorization': 'Bearer eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyOCIsImlzcyI6ImF1dGgtc2VydmljZSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3ODIyOTQ2NjAsImV4cCI6MTc4MjI5NTUyNCwicm9sZXMiOlsiQURNSU4iXX0.A5_isrEVvw82gnqU94QYOOw-xB47fB5qCqKV817Lf7h3Qa5CpvYh8oZ0WSu6tJ_o4F1fPJONwsMves4nwqyvhA',
+            'Authorization': 'Bearer eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyOCIsImlzcyI6ImF1dGgtc2VydmljZSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3ODIzMDkwNDksImV4cCI6MTc4MjMwOTkxMywicm9sZXMiOlsiQURNSU4iXX0.R2-MqjlUGvswSxk0fjMVmawst97wujUvif4zh5KJ14Jg7hpz30Ja_EWPZDiwTPaaXaqBF2VRI3p17IjcAl763Q',
             'Content-Type': 'application/json'
         }
     };

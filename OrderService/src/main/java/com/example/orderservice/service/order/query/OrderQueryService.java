@@ -68,22 +68,5 @@ public class OrderQueryService {
                 .toList();
     }
 
-    public OrderPaymentInfoResponse getPaymentInfo(
-            Long orderId
-    ){
-
-        Order order =
-                orderRepository.findById(
-                        orderId
-                ).orElseThrow();
-
-        return new OrderPaymentInfoResponse(
-                order.getId(),
-                order.getUserId(),
-                order.getTotalAmount(),
-                order.getOrderStatus()
-        );
-
-    }
 
 }

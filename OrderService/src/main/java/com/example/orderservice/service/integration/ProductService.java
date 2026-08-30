@@ -89,11 +89,6 @@ public class ProductService {
         return productClient.getProductsByIds(ids);
     }
 
-    @Retry(name = "product-service")
-    @CircuitBreaker(
-            name = "product-service",
-            fallbackMethod = "fallbackPrices"
-    )
     public Map<Long, BigDecimal> loadPrices(List<Long> ids) {
 
         Map<Long, BigDecimal> prices = getPrices(ids);

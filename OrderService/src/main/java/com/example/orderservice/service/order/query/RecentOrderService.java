@@ -69,10 +69,14 @@ public class RecentOrderService {
                             OrderItem item =
                                     itemMap.get(product.id());
 
+                            String image = product.imageUrls().isEmpty()
+                                    ? null
+                                    : product.imageUrls().getFirst();
+
                             return new RecentOrderItemDto(
                                     product.id(),
                                     product.name(),
-                                    product.imageUrls().getFirst(),
+                                    image,
                                     item.getQuantity(),
                                     product.price(),
                                     item.getStatus(),

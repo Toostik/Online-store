@@ -3,14 +3,13 @@ package com.example.productservice.service.flashsale.schedule;
 import com.example.productservice.dao.flashsale.FlashSaleRepository;
 import com.example.productservice.dao.flashsale.FlashSaleReservationRepository;
 import com.example.productservice.entity.flashsale.FlashSale;
-import com.example.productservice.entity.flashsale.FlashSaleStatus;
-import com.example.productservice.entity.flashsale.ReservationStatus;
+import com.example.productservice.entity.enums.FlashSaleStatus;
+import com.example.productservice.entity.enums.ReservationStatus;
 import com.example.productservice.service.flashsale.cache.FlashSaleCacheService;
-import com.example.productservice.service.flashsale.cache.FlashSaleReserveCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +27,11 @@ public class FlashSalesReconcileScheduler {
     private final FlashSaleCacheService cacheService;
 
     @Scheduled(fixedDelay = 300000)
+    @SchedulerLock(
+            name = "reconcileFlashSales",
+            lockAtMostFor = "10m",
+            lockAtLeastFor = "10s"
+    )
     public void reconcileFlashSales() {
 
         List<FlashSale> sales =
@@ -70,6 +74,10 @@ public class FlashSalesReconcileScheduler {
 
     @Scheduled(fixedDelay = 60000)
     @Transactional
+    @SchedulerLock(
+            name = "updateStatuses",
+            lockAtMostFor = "5m"
+    )
     public void updateStatuses() {
 
         log.info("UPDATE STATUSES");

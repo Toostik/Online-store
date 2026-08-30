@@ -4,6 +4,7 @@ import com.example.orderservice.dao.event.ProcessedEventRepository;
 import com.example.orderservice.dto.cart.CartItemResponse;
 import com.example.orderservice.dao.order.OrderRepository;
 import com.example.orderservice.dto.cart.CartResponse;
+import com.example.orderservice.dto.order.OrderContext;
 import com.example.orderservice.dto.order.OrderDto;
 import com.example.orderservice.dto.order.request.CreateOrderRequest;
 import com.example.orderservice.dto.product.ProductAvailability;
@@ -40,7 +41,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class OrderCommandService {
 
     private final SecurityService securityService;
@@ -53,10 +53,8 @@ public class OrderCommandService {
     private final OrderRepository orderRepository;
 
     private final OrderOutboxService outboxService;
-    private final OrderCacheService cacheService;
-    private final OrderMapper orderMapper;
     private final ProcessedEventRepository processedEventRepository;
-
+    private final OrderTransactionalService transactionalService;
     private boolean markProcessed(String eventId) {
 
         try {
@@ -73,110 +71,87 @@ public class OrderCommandService {
         }
     }
 
-    private void publicateAndSaveCacheOrder(Order order, UUID reservationKey){
-
-        List<OrderItemEvent> items =
-                order.getItems()
-                        .stream()
-                        .map(item ->
-                                new OrderItemEvent(
-                                        item.getProductId(),
-                                        item.getQuantity()
-                                ))
-                        .toList();
-
-        OrderCreatedEvent orderCreatedEvent =
-                new OrderCreatedEvent(
-                        UUID.randomUUID().toString(),
-                        MDC.get("requestId"),
-                        order.getId(),
-                        order.getUserId(),
-                        order.getTotalAmount(),
-                        items,
-                        reservationKey
-                );
-
-        outboxService.publishCreated(orderCreatedEvent);
-
-        try {
-            cacheService.save(order);
-        }
-        catch (Exception ignored){
-        }
-
-    }
-
-
-    public OrderDto createOrder(CreateOrderRequest request) {
-
-        Long userId = securityService.getCurrentUserId();
+    private OrderContext loadOrderContext(
+            Long userId,
+            CreateOrderRequest request
+    ) {
 
         CartResponse cart =
                 cartService.getValidatedCart();
 
-        CheckProductRequest requestCheck = new CheckProductRequest();
+        CheckProductRequest requestCheck =
+                new CheckProductRequest();
 
-        Map<Long, Integer> products = cart.getItems()
-                .stream()
-                .collect(Collectors.toMap(
-                        CartItemResponse::getProductId,
-                        CartItemResponse::getQuantity
-                ));
+        Map<Long, Integer> products =
+                cart.getItems()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                CartItemResponse::getProductId,
+                                CartItemResponse::getQuantity
+                        ));
 
         requestCheck.setProducts(products);
-        
-        CheckProductResponse productResponse = productService.getAvailability(requestCheck);
 
-        Map<Long, ProductAvailability> productAvailability =
+        CheckProductResponse productResponse =
+                productService.getAvailability(requestCheck);
+
+        Map<Long, ProductAvailability> availability =
                 productResponse.getProductAvailability();
 
-        for (Map.Entry<Long, ProductAvailability> entry : productAvailability.entrySet()) {
+        for (Map.Entry<Long, ProductAvailability> entry : availability.entrySet()) {
 
-            Long productId = entry.getKey();
-            ProductAvailability availability = entry.getValue();
-
-            if (!availability.isExists()) {
+            if (!entry.getValue().isExists()) {
                 throw new ProductNotFoundException(
-                        "Product not found: " + productId
+                        "Product not found: " + entry.getKey()
                 );
             }
 
-            if (!availability.isEnoughStock()) {
+            if (!entry.getValue().isEnoughStock()) {
                 throw new ProductOutOfStockException(
-                        "Not enough stock for product: " + productId
+                        "Not enough stock: " + entry.getKey()
                 );
             }
+
         }
 
-        List<Long> ids = cart.getItems()
-                .stream()
-                .map(CartItemResponse::getProductId)
-                .toList();
+        List<Long> ids =
+                cart.getItems()
+                        .stream()
+                        .map(CartItemResponse::getProductId)
+                        .toList();
 
         Map<Long, BigDecimal> prices =
                 productService.loadPrices(ids);
 
-        Order order =
-                builderService.build(
-                        cart,
-                        prices,
-                        userId
+        return new OrderContext(
+                cart,
+                prices
+        );
+
+    }
+
+    public OrderDto createOrder(
+            CreateOrderRequest request
+    ) {
+
+        Long userId =
+                securityService.getCurrentUserId();
+
+        OrderContext context =
+                loadOrderContext(
+                        userId,
+                        request
                 );
 
-        deliveryService.attachDelivery(
-                order,
+        return transactionalService.createOrder(
+                context,
                 request,
                 userId
         );
 
-        Order saved =
-                orderRepository.save(order);
-
-        publicateAndSaveCacheOrder(saved, null);
-
-        return orderMapper.toDto(saved);
     }
 
+    @Transactional
     public void awaitingPayment(
             OrderAwaitingPaymentEvent event
     ){
@@ -208,9 +183,9 @@ public class OrderCommandService {
                 OrderStatus.AWAITING_PAYMENT
         );
 
-        orderRepository.save(order);
     }
 
+    @Transactional
     public void confirm(
             OrderConfirmedEvent event
     ){
@@ -231,17 +206,20 @@ public class OrderCommandService {
                 ).orElseThrow();
 
         if(order.getOrderStatus() != OrderStatus.AWAITING_PAYMENT){
+            log.warn("ORDER_STATUS_NOT_AWAITING_PAYMENT");
             return;
         }
 
-        order.setOrderStatus(
-                OrderStatus.CONFIRMED
-        );
+        int updated = orderRepository.changeStatus(order.getId(), OrderStatus.AWAITING_PAYMENT, OrderStatus.CONFIRMED);
+
+        if (updated != 1) {
+            return;
+        }
 
         outboxService.publishConfirmed(event);
-
     }
 
+    @Transactional
     public void cancel(
             OrderCancelledEvent event
     ) {
@@ -263,6 +241,9 @@ public class OrderCommandService {
                         event.orderId()
                 ).orElseThrow();
 
+        if(order.getOrderStatus() == OrderStatus.CANCELLED)
+            return;
+
         order.setOrderStatus(
                 OrderStatus.CANCELLED
         );
@@ -276,6 +257,7 @@ public class OrderCommandService {
 
     }
 
+    @Transactional
     public void createOrderByFlashSale(FlashSaleReservationAndCheckoutEvent event) {
 
         if (!markProcessed(event.eventId().toString())) {
@@ -288,15 +270,7 @@ public class OrderCommandService {
             return;
         }
 
-        Order order = builderService.buildFlashSaleOrder(
-                event,
-                event.discountedPrice()
-        );
-
-        Order saved =
-                orderRepository.save(order);
-
-        publicateAndSaveCacheOrder(saved, event.reservationKey());
+        transactionalService.createFlashSaleOrder(event);
 
     }
 }

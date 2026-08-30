@@ -8,6 +8,7 @@ import com.example.paymentservice.service.payment.query.PaymentQueryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.events.order.OrderAwaitingPaymentEvent;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -42,4 +43,9 @@ public class PaymentService {
 
     }
 
+    public void awaitingPayment(OrderAwaitingPaymentEvent event) {
+
+        commandService.awaitingPayment(event);
+
+    }
 }

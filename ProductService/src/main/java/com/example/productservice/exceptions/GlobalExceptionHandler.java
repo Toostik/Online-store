@@ -1,6 +1,6 @@
 package com.example.productservice.exceptions;
 
-import com.example.productservice.entity.error.ErrorResponse;
+import com.example.productservice.dto.error.ErrorResponse;
 import com.example.productservice.exceptions.category.CategoryNotFoundException;
 import com.example.productservice.exceptions.flashsale.FlashNotActiveException;
 import com.example.productservice.exceptions.flashsale.FlashSaleNotFoundException;

@@ -40,16 +40,25 @@ public class FlashSaleReserveCacheService {
         }
     }
 
-    public void releaseReservation(Long flashSaleId, Integer quantity){
+    public void release(
+            Long flashSaleId,
+            Integer quantity
+    ) {
 
         String key = RESERVATION_PREFIX + flashSaleId;
 
         try {
 
-           redisTemplate.opsForValue().increment(key, quantity);
+            redisTemplate.opsForValue()
+                    .increment(key, quantity);
 
-        } catch (Exception e){
-            log.warn("Redis unavailable");
+        } catch (Exception e) {
+
+            log.warn(
+                    "Redis unavailable while restoring reservation",
+                    e
+            );
+
         }
 
     }

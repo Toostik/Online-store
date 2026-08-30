@@ -4,7 +4,7 @@ import com.example.authservice.dto.response.AuthResponse;
 import com.example.authservice.dto.request.LoginRequest;
 import com.example.authservice.dto.request.RefreshRequest;
 import com.example.authservice.dto.request.RegisterRequest;
-import com.example.authservice.jwt.JwtService;
+import com.example.authservice.service.jwt.JwtService;
 import com.example.authservice.service.integration.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
     private final JwtService jwtService;

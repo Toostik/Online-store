@@ -4,13 +4,11 @@ import com.example.orderservice.dto.order.OrderDto;
 import com.example.orderservice.entity.order.Order;
 import com.example.orderservice.entity.order.mapper.OrderMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.netty.buffer.CompositeByteBuf;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
 import java.time.Duration;
-import java.util.List;
+
 
 @Service
 @RequiredArgsConstructor

@@ -13,13 +13,13 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(name = "product-service", url = "http://product-service:8083")
+@FeignClient(name = "product-service", url = "${services.product.url}")
 public interface ProductClient {
-    @GetMapping("/api/products/{id}/price")
+    @GetMapping("/api/v1/products/{id}/price")
     BigDecimal gerPrice(@PathVariable Long id);
-    @PostMapping("/api/products/prices")
+    @PostMapping("/api/v1/products/prices")
     Map<Long, BigDecimal> getPrices(@RequestBody List<Long> ids);
-    @PostMapping("/api/products/query")
+    @PostMapping("/api/v1/products/query")
     ProfileProducts getProductsByIds(@RequestBody List<Long> ids);
 
     @PostMapping("/internal/products/availability")

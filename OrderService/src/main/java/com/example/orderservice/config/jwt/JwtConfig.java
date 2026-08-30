@@ -10,6 +10,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.X509EncodedKeySpec;
@@ -32,9 +34,9 @@ public class JwtConfig {
     }
 
     @Bean
-    public JwtDecoder jwtDecoder(@Value("${app.public.key.path}") Resource resource) {
+    public JwtDecoder jwtDecoder(@Value("${app.public.key.path}") String path) {
 
-        try (InputStream is = resource.getInputStream()) {
+        try (InputStream is = Files.newInputStream(Paths.get(path))) {
 
             String key = new String(is.readAllBytes());
             key = key.replace("-----BEGIN PUBLIC KEY-----", "")

@@ -51,9 +51,6 @@ public class OrderService {
         commandService.confirm(event);
     }
 
-    public OrderPaymentInfoResponse getPaymentInfo(Long orderId){
-        return queryService.getPaymentInfo(orderId);
-    }
 
     public void cancel(
             OrderCancelledEvent event

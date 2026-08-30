@@ -5,6 +5,7 @@ import com.example.userservice.dto.orders.ProfileOrders;
 import com.example.userservice.dto.user.UserDto;
 import com.example.userservice.dto.user.UserProfile;
 import com.example.userservice.dto.user.address.AddressDto;
+import com.example.userservice.entity.user.User;
 import com.example.userservice.exceptions.UserNotFoundException;
 import com.example.userservice.service.integration.OrderService;
 import com.example.userservice.service.security.SecurityService;
@@ -16,12 +17,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserQueryService {
 
     private final UserRepository userRepository;
@@ -31,14 +35,21 @@ public class UserQueryService {
     private final UserProfileBuilder userProfileBuilder;
 
 
+
     public UserDto getUserById(Long userId) {
+        UserDto cached = userCacheService.get(userId);
+        if (cached != null) {
+            return cached;
+        }
 
-        log.debug("GET_USER_BY_ID id={}", userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        UserDto userDto = userCacheService.get(userId);
+        UserDto dto = user.toDto();
 
-        return userDto;
+        userCacheService.save(dto);
 
+        return dto;
     }
 
     public UserDto getUserByEmail(String email) {

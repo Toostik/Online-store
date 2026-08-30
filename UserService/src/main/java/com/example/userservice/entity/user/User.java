@@ -4,9 +4,7 @@ import com.example.userservice.dto.user.UserDto;
 import com.example.userservice.dto.user.address.AddressDto;
 import com.example.userservice.entity.enums.Role;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,7 +12,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -65,9 +64,11 @@ public class User {
                 balance,
                 phone,
                 createdAt,
-                addresses.stream()
+                addresses != null
+                        ? addresses.stream()
                         .map(u -> new AddressDto(u.getType(), u.getAddress()))
-                        .toList(),
+                        .toList()
+                        : null,
                 security.getStatus().name()
         );
     }

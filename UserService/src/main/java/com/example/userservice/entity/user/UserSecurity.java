@@ -2,13 +2,12 @@ package com.example.userservice.entity.user;
 
 import com.example.userservice.entity.enums.UserSecurityStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "user_security")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserSecurity {

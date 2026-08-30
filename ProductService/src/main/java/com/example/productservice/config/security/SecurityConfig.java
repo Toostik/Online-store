@@ -15,26 +15,31 @@ import org.springframework.security.web.SecurityFilterChain;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtConfig jwtConfig;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/products/*").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/products/*/price").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/products/preview").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
 
-                        .requestMatchers(HttpMethod.POST, "/api/products/prices").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/products/query").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/images/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/*/price").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/preview").permitAll()
 
-                        .requestMatchers(HttpMethod.POST, "/api/products").hasAnyRole("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.PUT, "/api/products/*").hasAnyRole("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/products/*").hasAnyRole("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.POST, "/api/products/*/images").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products/prices").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products/query").permitAll()
 
-                        .requestMatchers(HttpMethod.POST, "/api/flash-sales/*/reserve", "/api/flash-sales/*/checkout").hasAnyRole("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.POST, "/api/flash-sales/").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/products/*").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/products/*").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products/*/images").hasAnyRole("ADMIN", "USER")
+
+
+                        .requestMatchers(HttpMethod.POST, "/api/v1/flash-sales/*/reserve", "/api/v1/flash-sales/*/checkout").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/flash-sales/").hasRole("ADMIN")
 
                         .anyRequest().authenticated()
                 )

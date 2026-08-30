@@ -33,7 +33,9 @@ temp/
 .env
 application-*.local.*
 application-*.local.properties
-
+keys/
+*.pem
+.pem
 # ================== OS ==================
 .DS_Store
 Thumbs.db

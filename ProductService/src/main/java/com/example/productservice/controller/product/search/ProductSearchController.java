@@ -1,4 +1,4 @@
-package com.example.productservice.controller.product;
+package com.example.productservice.controller.product.search;
 
 import com.example.productservice.service.product.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 public class ProductSearchController {
 

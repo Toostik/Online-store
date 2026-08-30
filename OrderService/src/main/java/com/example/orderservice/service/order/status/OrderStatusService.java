@@ -32,7 +32,7 @@ public class OrderStatusService {
                                 )
                         );
 
-        if(order.getOrderStatus() == OrderStatus.CONFIRMED)
+        if(order.getOrderStatus() != OrderStatus.AWAITING_PAYMENT)
             return;
 
         order.setOrderStatus(OrderStatus.CONFIRMED);

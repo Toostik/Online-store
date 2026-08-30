@@ -19,10 +19,10 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/payments/*/transaction",
-                                "/api/payments/*/order",
-                                "/api/payments/*/id").hasAnyRole("ADMIN", "SERVICE")
-                        .requestMatchers("/api/payments/**").hasAnyRole("USER","ADMIN")
+                        .requestMatchers("/api/v1/payments/*/transaction",
+                                "/api/v1/payments/*/order",
+                                "/api/v1/payments/*/id").hasAnyRole("ADMIN", "SERVICE")
+                        .requestMatchers("/api/v1/payments/**").hasAnyRole("USER","ADMIN")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth

@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;

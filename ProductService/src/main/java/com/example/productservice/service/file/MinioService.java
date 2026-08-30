@@ -1,9 +1,6 @@
 package com.example.productservice.service.file;
 
-import io.minio.BucketExistsArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
+import io.minio.*;
 import io.minio.errors.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
@@ -74,4 +72,18 @@ public class MinioService {
         }
 
     }
+
+    public InputStream getObject(String objectName) {
+        try {
+            return minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectName)
+                            .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

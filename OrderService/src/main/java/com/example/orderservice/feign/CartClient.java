@@ -4,8 +4,8 @@ import com.example.orderservice.dto.cart.CartResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 
-@FeignClient(name = "cart-service", url = "http://cart-service:8084")
+@FeignClient(name = "cart-service", url = "${services.cart.url}")
 public interface CartClient {
-    @GetMapping("/api/carts/my")
+    @GetMapping("/api/v1/carts/my")
     CartResponse getCart();
 }

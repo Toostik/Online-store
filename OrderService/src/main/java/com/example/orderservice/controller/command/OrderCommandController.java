@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/orders")
+@RequestMapping("/api/v1/orders")
 public class OrderCommandController {
 
     private final OrderService orderService;

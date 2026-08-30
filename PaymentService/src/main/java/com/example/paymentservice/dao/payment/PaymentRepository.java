@@ -1,5 +1,6 @@
 package com.example.paymentservice.dao.payment;
 
+import com.example.paymentservice.entity.enums.Status;
 import com.example.paymentservice.entity.payment.Payment;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
@@ -17,4 +18,6 @@ public interface PaymentRepository extends CrudRepository<Payment, Long> {
     List<Payment> findAllByOrderId(Long orderId);
 
     boolean existsByOrderId(Long orderId);
+
+    Optional<Payment> findByOrderIdAndStatus(Long orderId, Status status);
 }

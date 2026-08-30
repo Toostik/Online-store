@@ -111,8 +111,12 @@ services:
     working_dir: /workspace/AuthService
     command: mvn spring-boot:run
     volumes:
+      - D:/Projects/keys:/keys:ro
       - .:/workspace
       - C:/Users/Роман/.m2:/root/.m2
+    environment:
+      JWT_PRIVATE_KEY: /keys/private_pkcs8.pem
+      JWT_PUBLIC_KEY: /keys/public.pem
     ports:
       - "8081:8080"
     depends_on:
@@ -126,8 +130,11 @@ services:
     working_dir: /workspace/UserService
     command: mvn spring-boot:run
     volumes:
+      - D:/Projects/keys:/keys:ro
       - .:/workspace
       - C:/Users/Роман/.m2:/root/.m2
+    environment:
+      JWT_PUBLIC_KEY: /keys/public.pem
     ports:
       - "8082:8080"
     depends_on:
@@ -141,8 +148,11 @@ services:
     working_dir: /workspace/ProductService
     command: mvn spring-boot:run
     volumes:
+      - D:/Projects/keys:/keys:ro
       - .:/workspace
       - C:/Users/Роман/.m2:/root/.m2
+    environment:
+      JWT_PUBLIC_KEY: /keys/public.pem
     ports:
       - "8083:8080"
 
@@ -152,8 +162,11 @@ services:
     working_dir: /workspace/CartService
     command: mvn spring-boot:run
     volumes:
+      - D:/Projects/keys:/keys:ro
       - .:/workspace
       - C:/Users/Роман/.m2:/root/.m2
+    environment:
+      JWT_PUBLIC_KEY: /keys/public.pem
     ports:
       - "8084:8080"
     depends_on:
@@ -167,8 +180,11 @@ services:
     working_dir: /workspace/OrderService
     command: mvn spring-boot:run
     volumes:
+      - D:/Projects/keys:/keys:ro
       - .:/workspace
       - C:/Users/Роман/.m2:/root/.m2
+    environment:
+      JWT_PUBLIC_KEY: /keys/public.pem
     ports:
       - "8085:8080"
     depends_on:
@@ -182,8 +198,11 @@ services:
     working_dir: /workspace/PaymentService
     command: mvn spring-boot:run
     volumes:
+      - D:/Projects/keys:/keys:ro
       - .:/workspace
       - C:/Users/Роман/.m2:/root/.m2
+    environment:
+      JWT_PUBLIC_KEY: /keys/public.pem
     ports:
       - "8086:8080"
     depends_on:
@@ -197,8 +216,11 @@ services:
     working_dir: /workspace/NotificationService
     command: mvn spring-boot:run
     volumes:
+      - D:/Projects/keys:/keys:ro
       - .:/workspace
       - C:/Users/Роман/.m2:/root/.m2
+    environment:
+      JWT_PUBLIC_KEY: /keys/public.pem
     ports:
       - "8087:8080"
     depends_on:

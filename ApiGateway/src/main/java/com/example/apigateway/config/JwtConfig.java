@@ -25,6 +25,8 @@ import org.springframework.security.oauth2.server.resource.authentication.Reacti
 import reactor.core.publisher.Mono;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.X509EncodedKeySpec;
@@ -65,9 +67,9 @@ public class JwtConfig {
 
     @Bean
     public ReactiveJwtDecoder jwtDecoder(
-            @Value("${app.public.key.path}") Resource resource) {
+            @Value("${app.public.key.path}") String path) {
 
-        try (InputStream is = resource.getInputStream()) {
+        try (InputStream is = Files.newInputStream(Paths.get(path))) {
 
             String key = new String(is.readAllBytes());
 

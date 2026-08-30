@@ -45,4 +45,8 @@ public class Order {
             orphanRemoval = true)
     private List<OrderItem> items;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
 }

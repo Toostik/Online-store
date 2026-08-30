@@ -100,6 +100,19 @@ public class RefreshTokenCacheService {
 
     }
 
+    public void delete(String userId) {
+        String key = REFRESH_PREFIX + userId;
+        try {
+            redisTemplate.delete(
+                    key
+            );
+        } catch (Exception e){
+
+            log.warn("Redis connect exception", e);
+
+        }
+    }
+
 
 
 }

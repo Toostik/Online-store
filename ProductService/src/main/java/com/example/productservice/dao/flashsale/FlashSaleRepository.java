@@ -1,7 +1,7 @@
 package com.example.productservice.dao.flashsale;
 
 import com.example.productservice.entity.flashsale.FlashSale;
-import com.example.productservice.entity.flashsale.FlashSaleStatus;
+import com.example.productservice.entity.enums.FlashSaleStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

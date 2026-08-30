@@ -9,6 +9,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.interfaces.ECPublicKey;
@@ -30,14 +32,14 @@ public class JwtUtil {
     private static final String ISSUER = "auth-service";
 
     public JwtUtil(
-            @Value("${app.private.key.path}") Resource privateResource,
-            @Value("${app.public.key.path}") Resource publicResource,
+            @Value("${app.private.key.path}") String privatePath,
+            @Value("${app.public.key.path}") String publicPath,
             @Value("${app.jwt.access-expiration}") long accessExpiration,// 4 часа для разработки
             @Value("${app.jwt.refresh-expiration}") long refreshExpiration // 7 дней
     ) {
         try {
-            this.privateKey = loadPrivateKey(privateResource);
-            this.publicKey = loadPublicKey(publicResource);
+            this.privateKey = loadPrivateKey(privatePath);
+            this.publicKey = loadPublicKey(publicPath);
         } catch (Exception e) {
             throw new KeyLoadException("Key didn't load");
         }
@@ -128,31 +130,29 @@ public class JwtUtil {
 
     }
 
-    private PrivateKey loadPrivateKey(Resource resource) throws Exception {
-        String key = readKey(resource);
+    private PrivateKey loadPrivateKey(String path) throws Exception {
+        String key = readKey(path);
 
         byte[] keyBytes = Base64.getDecoder().decode(key);
         return KeyFactory.getInstance("EC")
                 .generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
     }
 
-    private ECPublicKey loadPublicKey(Resource resource) throws Exception {
-        String key = readKey(resource);
+    private ECPublicKey loadPublicKey(String path) throws Exception {
+        String key = readKey(path);
 
         byte[] keyBytes = Base64.getDecoder().decode(key);
         return (ECPublicKey) KeyFactory.getInstance("EC")
                 .generatePublic(new X509EncodedKeySpec(keyBytes));
     }
 
-    private String readKey(Resource resource) throws Exception {
-        try (InputStream is = resource.getInputStream()) {
-            String key = new String(is.readAllBytes());
+    private String readKey(String path) throws Exception {
+        String key = Files.readString(Paths.get(path));
 
-            return key.replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replace("-----BEGIN PUBLIC KEY-----", "")
-                    .replace("-----END PUBLIC KEY-----", "")
-                    .replaceAll("\\s+", "");
-        }
+        return key.replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replaceAll("\\s+", "");
     }
 }

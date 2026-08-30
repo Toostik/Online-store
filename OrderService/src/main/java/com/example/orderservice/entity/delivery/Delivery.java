@@ -1,9 +1,7 @@
 package com.example.orderservice.entity.delivery;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.example.events.order.DeliveryMethod;
 
 import java.math.BigDecimal;
@@ -12,6 +10,8 @@ import java.math.BigDecimal;
 @Table(name = "deliveries")
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 @Builder
 public class Delivery {
 

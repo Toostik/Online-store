@@ -4,12 +4,10 @@ import com.example.userservice.dao.UserRepository;
 import com.example.userservice.dto.user.UserDto;
 import com.example.userservice.dto.request.LoginRequest;
 import com.example.userservice.dto.request.RegisterRequest;
-import com.example.userservice.entity.enums.Role;
 import com.example.userservice.entity.user.User;
 import com.example.userservice.exceptions.PasswordWrongException;
 import com.example.userservice.exceptions.UserExistsException;
 import com.example.userservice.exceptions.UserNotFoundException;
-import com.example.userservice.kafka.KafkaProducer;
 import com.example.userservice.service.security.SecurityService;
 import com.example.userservice.service.file.MinioService;
 import com.example.userservice.service.user.builder.UserBuilder;
@@ -17,13 +15,11 @@ import com.example.userservice.service.user.cache.UserCacheService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 
 @Slf4j
 @Service
@@ -32,7 +28,6 @@ import java.time.Duration;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final KafkaProducer kafkaProducer;
     private final SecurityService securityService;
     private final MinioService minioService;
     private final UserBuilder userBuilder;
@@ -53,9 +48,7 @@ public class UserService {
 
         log.info("USER_CREATED id={}", saved.getId());
 
-        userCacheService.save(saved);
-
-        kafkaProducer.sendMessage("users-registered",saved.toDto());
+        userCacheService.save(saved.toDto());
 
         return saved.toDto();
     }

@@ -26,7 +26,7 @@ public class OrderAwaitingPaymentConsumer {
     ){
 
         try {
-
+            log.info("ORDER_AWAITING_RECEIVED -> {}", event.orderId());
             orderService.awaitingPayment(event);
 
             ack.acknowledge();

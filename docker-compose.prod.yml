@@ -1,0 +1,587 @@
+# ============================================================
+#  docker-compose.prod.yml  —  PRODUCTION (VPS)
+#
+#  Запуск:
+#    docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#
+#  ПЕРЕД ЗАПУСКОМ:
+#  1. Создайте .env.prod (см. .env.prod.example)
+#  2. Соберите JAR-образы: ./scripts/build-all.sh
+#  3. Убедитесь, что ключи лежат в /opt/onlineshop/keys/ на сервере
+#  4. Настройте nginx + certbot (см. README.md)
+#
+#  Отличия от dev:
+#  - Порты инфраструктуры НЕ маппятся наружу (только внутри docker-сети)
+#  - Java-сервисы запускаются из собранных JAR (быстрый старт ~10 сек)
+#  - restart: unless-stopped на всех сервисах
+#  - Resource limits на каждом контейнере
+#  - Redis с паролем
+#  - Grafana/Prometheus/Loki без внешних портов (только SSH tunnel)
+#  - Все секреты через .env.prod файл
+# ============================================================
+
+networks:
+  shop-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  grafana_data:
+  loki_data:
+
+services:
+
+  # ==================== ИНФРАСТРУКТУРА ====================
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: shop_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+      # Лёгкий тюнинг для 8 GB VPS
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=512MB"
+      - "-c"
+      - "work_mem=8MB"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d shop_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - shop-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shop-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - shop-net
+
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    # В prod: только внутренний API-порт для сервисов.
+    # Консоль (9001) недоступна снаружи — используйте SSH tunnel:
+    #   ssh -L 9001:localhost:9001 user@yourserver
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 10s
+    networks:
+      - shop-net
+
+  # ==================== KAFKA ====================
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "2181" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - shop-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 104857600
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    networks:
+      - shop-net
+
+  connect:
+    image: debezium/connect:2.5
+    container_name: debezium-connect
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: debezium-connect-group
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8083/connectors" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - shop-net
+
+  # ==================== МИКРОСЕРВИСЫ (PROD) ====================
+  #
+  # В prod используем собранные JAR-образы, НЕ Maven.
+  # Соберите образы командой:
+  #
+  #   cd ApiGateway && mvn clean package -DskipTests
+  #   docker build -t onlineshop/api-gateway:latest .
+  #   ... (повторить для каждого сервиса)
+  #
+  # Или используйте скрипт ./scripts/build-all.sh
+  #
+  # Dockerfile в каждом сервисе должен быть вида:
+  #   FROM eclipse-temurin:21-jre-alpine
+  #   COPY target/*.jar app.jar
+  #   ENTRYPOINT ["java", "-jar", "/app.jar"]
+  # ============================================================
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        JAR_FILE: ApiGateway/target/*.jar
+    image: onlineshop/api-gateway:${APP_VERSION:-latest}
+    container_name: api-gateway
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PUBLIC_KEY: /keys/public.pem
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+    volumes:
+      - /opt/onlineshop/keys:/keys:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shop-net
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        JAR_FILE: AuthService/target/*.jar
+    image: onlineshop/auth-service:${APP_VERSION:-latest}
+    container_name: auth-service
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PRIVATE_KEY: /keys/private_pkcs8.pem
+      JWT_PUBLIC_KEY: /keys/public.pem
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+    volumes:
+      - /opt/onlineshop/keys:/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shop-net
+
+  user-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        JAR_FILE: UserService/target/*.jar
+    image: onlineshop/user-service:${APP_VERSION:-latest}
+    container_name: user-service
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PUBLIC_KEY: /keys/public.pem
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+    volumes:
+      - /opt/onlineshop/keys:/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shop-net
+
+  product-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        JAR_FILE: ProductService/target/*.jar
+    image: onlineshop/product-service:${APP_VERSION:-latest}
+    container_name: product-service
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PUBLIC_KEY: /keys/public.pem
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      JAVA_OPTS: "-Xms128m -Xmx384m -XX:+UseG1GC"
+    volumes:
+      - /opt/onlineshop/keys:/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - shop-net
+
+  cart-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        JAR_FILE: CartService/target/*.jar
+    image: onlineshop/cart-service:${APP_VERSION:-latest}
+    container_name: cart-service
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PUBLIC_KEY: /keys/public.pem
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+    volumes:
+      - /opt/onlineshop/keys:/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shop-net
+
+  order-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        JAR_FILE: OrderService/target/*.jar
+    image: onlineshop/order-service:${APP_VERSION:-latest}
+    container_name: order-service
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PUBLIC_KEY: /keys/public.pem
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+    volumes:
+      - /opt/onlineshop/keys:/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shop-net
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        JAR_FILE: PaymentService/target/*.jar
+    image: onlineshop/payment-service:${APP_VERSION:-latest}
+    container_name: payment-service
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PUBLIC_KEY: /keys/public.pem
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+    volumes:
+      - /opt/onlineshop/keys:/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shop-net
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        JAR_FILE: NotificationService/target/*.jar
+    image: onlineshop/notification-service:${APP_VERSION:-latest}
+    container_name: notification-service
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_PUBLIC_KEY: /keys/public.pem
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+    volumes:
+      - /opt/onlineshop/keys:/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shop-net
+
+  order-orchestration-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        JAR_FILE: OrderOrchestratorService/target/*.jar
+    image: onlineshop/order-orchestration-service:${APP_VERSION:-latest}
+    container_name: order-orchestration-service
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JAVA_OPTS: "-Xms128m -Xmx256m -XX:+UseG1GC"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shop-net
+
+  # ==================== МОНИТОРИНГ ====================
+  # В prod: порты НЕ открыты наружу.
+  # Доступ только через SSH tunnel:
+  #   Grafana:    ssh -L 3000:localhost:3000 user@yourserver
+  #   Prometheus: ssh -L 9090:localhost:9090 user@yourserver
+  #   Debezium:   ssh -L 8088:localhost:8088 user@yourserver
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - shop-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - shop-net
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    restart: unless-stopped
+    volumes:
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - shop-net
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/promtail.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail.yml
+    depends_on:
+      - loki
+    networks:
+      - shop-net

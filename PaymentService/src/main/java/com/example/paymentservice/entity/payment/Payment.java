@@ -5,16 +5,14 @@ import com.example.paymentservice.entity.enums.PaymentFailureReason;
 import com.example.paymentservice.entity.enums.PaymentMethod;
 import com.example.paymentservice.entity.enums.Status;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "payments")
@@ -31,7 +29,7 @@ public class Payment {
     @Column(nullable = false, unique = true)
     private Long orderId;
 
-    @Column(nullable = false)
+    @Column(name = "payment_method")
     @Enumerated(EnumType.STRING)
     private PaymentMethod paymentMethod;
 
@@ -47,8 +45,6 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     private PaymentFailureReason failureReason;
-
-
 
     @Version
     private Long version;

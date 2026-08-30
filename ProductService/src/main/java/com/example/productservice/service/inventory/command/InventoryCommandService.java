@@ -4,10 +4,9 @@ import com.example.productservice.dao.event.ProcessedEventRepository;
 import com.example.productservice.dao.flashsale.FlashSaleReservationRepository;
 import com.example.productservice.dao.product.ProductRepository;
 import com.example.productservice.dao.reserve.OrderReservationRepository;
+import com.example.productservice.entity.enums.ReservationStatus;
 import com.example.productservice.entity.event.ProcessedEvent;
 import com.example.productservice.entity.flashsale.FlashSaleReservation;
-import com.example.productservice.entity.flashsale.ReservationStatus;
-import com.example.productservice.entity.product.Product;
 import com.example.productservice.entity.reserve.OrderReservation;
 import com.example.productservice.entity.reserve.ReservedProduct;
 import com.example.productservice.exceptions.flashsale.FlashSaleReserveException;
@@ -22,6 +21,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -47,8 +47,7 @@ public class InventoryCommandService {
             );
 
             return true;
-        }
-        catch (DataIntegrityViolationException e) {
+        } catch (DataIntegrityViolationException e) {
 
             return false;
         }
@@ -68,7 +67,7 @@ public class InventoryCommandService {
             return;
         }
 
-        if(flashSaleReservationRepository.existsByReservationKey(event.reservationKey())){
+        if (flashSaleReservationRepository.existsByReservationKey(event.reservationKey())) {
 
             FlashSaleReservation reservation = flashSaleReservationRepository.findByReservationKey(event.reservationKey()).orElseThrow();
 
@@ -86,30 +85,21 @@ public class InventoryCommandService {
                                 )
                         );
 
-        products.forEach((id, qty) -> {
+        products.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> {
 
-            Product product = productRepository.findById(id)
-                    .orElseThrow(
-                            () -> new ProductNotFoundException(id)
+                    int updated = productRepository.reserve(
+                            entry.getKey(),
+                            entry.getValue()
                     );
 
-            if (product.getAvailableQuantity() < qty) {
+                    if (updated != 1) {
+                        throw new InsufficientStockException("Stock not enough");
+                    }
 
-                throw new InsufficientStockException(
-                        "Stock not enough"
-                );
-
-            }
-
-            product.setAvailableQuantity(
-                    product.getAvailableQuantity() - qty
-            );
-
-            product.setReservedQuantity(
-                    product.getReservedQuantity() + qty
-            );
-
-        });
+                });
 
         OrderReservation reservation =
                 OrderReservation.builder()
@@ -127,11 +117,10 @@ public class InventoryCommandService {
                         )
                         .build();
 
-        if(event.reservationKey() != null){
+        if (event.reservationKey() != null) {
 
             FlashSaleReservation flashSaleReservation = flashSaleReservationRepository.findByReservationKey(event.reservationKey())
-                    .orElseThrow(() -> new FlashSaleReserveException("Reservation not found"))
-                    ;
+                    .orElseThrow(() -> new FlashSaleReserveException("Reservation not found"));
 
             flashSaleReservation.setOrderId(event.orderId());
 
@@ -139,7 +128,6 @@ public class InventoryCommandService {
         }
 
         reservationRepository.save(reservation);
-
 
 
         InventoryReservedEvent reservedEvent =
@@ -176,10 +164,15 @@ public class InventoryCommandService {
             return;
         }
 
-        if(flashSaleReservationRepository.existsByOrderId(event.orderId())){
+        if (flashSaleReservationRepository.existsByOrderId(event.orderId())) {
 
             FlashSaleReservation flashSaleReservation = flashSaleReservationRepository.findByOrderId(event.orderId())
                     .orElseThrow();
+
+            if (flashSaleReservation.getStatus()
+                    == ReservationStatus.COMPLETED) {
+                return;
+            }
 
             flashSaleReservation.setStatus(ReservationStatus.CANCELLED);
 
@@ -197,24 +190,21 @@ public class InventoryCommandService {
                         event.orderId()
                 ).orElseThrow();
 
-        for (ReservedProduct item : reservation.getProducts()) {
+        reservation.getProducts()
+                .stream()
+                .sorted(Comparator.comparing(ReservedProduct::getProductId))
+                .forEach(item -> {
 
-            Product product =
-                    productRepository.findById(
-                            item.getProductId()
-                    ).orElseThrow();
+                    int updated = productRepository.release(
+                            item.getProductId(),
+                            item.getQuantity()
+                    );
 
-            product.setReservedQuantity(
-                    product.getReservedQuantity()
-                            - item.getQuantity()
-            );
+                    if (updated != 1) {
+                        throw new ProductNotFoundException(item.getProductId());
+                    }
 
-            product.setAvailableQuantity(
-                    product.getAvailableQuantity()
-                            + item.getQuantity()
-            );
-
-        }
+                });
 
         reservationRepository.delete(
                 reservation
@@ -248,12 +238,22 @@ public class InventoryCommandService {
             return;
         }
 
-        if(flashSaleReservationRepository.existsByOrderId(event.orderId())){
+        if (flashSaleReservationRepository.existsByOrderId(event.orderId())) {
 
             FlashSaleReservation flashSaleReservation = flashSaleReservationRepository.findByOrderId(event.orderId())
                     .orElseThrow();
 
-            flashSaleReservation.setStatus(ReservationStatus.COMPLETED);
+            if (flashSaleReservation.getStatus()
+                    != ReservationStatus.CHECKOUT_STARTED) {
+
+                throw new IllegalStateException(
+                        "Reservation status invalid"
+                );
+            }
+
+            flashSaleReservation.setStatus(
+                    ReservationStatus.COMPLETED
+            );
 
 
             log.info(
@@ -268,19 +268,21 @@ public class InventoryCommandService {
                         event.orderId()
                 ).orElseThrow();
 
-        for (ReservedProduct item : reservation.getProducts()) {
+        reservation.getProducts()
+                .stream()
+                .sorted(Comparator.comparing(ReservedProduct::getProductId))
+                .forEach(item -> {
 
-            Product product =
-                    productRepository.findById(
-                            item.getProductId()
-                    ).orElseThrow();
+                    int updated = productRepository.commit(
+                            item.getProductId(),
+                            item.getQuantity()
+                    );
 
-            product.setReservedQuantity(
-                    product.getReservedQuantity()
-                            - item.getQuantity()
-            );
+                    if (updated != 1) {
+                        throw new ProductNotFoundException(item.getProductId());
+                    }
 
-        }
+                });
 
         reservationRepository.delete(
                 reservation

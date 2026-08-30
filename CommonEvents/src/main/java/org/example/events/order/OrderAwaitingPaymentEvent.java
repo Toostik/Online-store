@@ -8,7 +8,11 @@ public record OrderAwaitingPaymentEvent(
 
         String correlationId,
 
-        Long orderId
+        Long orderId,
+
+        Long userId,
+
+        BigDecimal totalAmount
 
 ) {
 }

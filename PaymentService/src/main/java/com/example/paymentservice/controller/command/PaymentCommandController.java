@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 public class PaymentCommandController {
 
@@ -28,7 +28,7 @@ public class PaymentCommandController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/orders/failed/{orderId}")
+    @PostMapping("/orders/fail/{orderId}")
     public ResponseEntity<Void> failedPay(
             @PathVariable Long orderId,
             @RequestBody CreatePaymentRequest request

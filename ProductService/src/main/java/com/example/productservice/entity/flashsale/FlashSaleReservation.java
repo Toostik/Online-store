@@ -1,5 +1,6 @@
 package com.example.productservice.entity.flashsale;
 
+import com.example.productservice.entity.enums.ReservationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

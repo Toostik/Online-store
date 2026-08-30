@@ -2,17 +2,20 @@ package org.example.orderorchestratorservice.service.saga.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+
 import org.example.events.enums.PaymentFailureReason;
 import org.example.events.payment.PaymentFailedEvent;
 import org.example.orderorchestratorservice.dao.saga.SagaInstanceRepository;
 import org.example.orderorchestratorservice.entity.SagaInstance;
-import org.example.orderorchestratorservice.entity.enums.FailureReason;
+
 import org.example.orderorchestratorservice.entity.enums.SagaStatus;
 import org.example.orderorchestratorservice.entity.enums.SagaStep;
-import org.example.orderorchestratorservice.service.event.SagaOutboxService;
+
 import org.example.orderorchestratorservice.service.saga.SagaService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +30,8 @@ public class SagaTimeoutScheduler {
     private final SagaService sagaService;
 
     @Scheduled(fixedDelay = 300000)
+    @SchedulerLock(name = "sagaTimeoutScheduler", lockAtMostFor = "PT4M")
+    @Transactional
     public void checkPaymentTimeouts() {
 
         List<SagaInstance> expiredSagas =
@@ -53,6 +58,7 @@ public class SagaTimeoutScheduler {
                             UUID.randomUUID().toString(),
                             saga.getSagaId().toString(),
                             saga.getOrderId(),
+                            saga.getUserId(),
                             PaymentFailureReason.TIMEOUT
                     );
 

@@ -7,6 +7,7 @@ import com.example.cartservice.entity.cart.CartItem;
 import com.example.cartservice.exceptions.product.PricesEmptyException;
 import com.example.cartservice.service.integration.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -47,7 +48,11 @@ public class CartItemAdderService {
                         prices.get(dto.getProductId())
                 );
 
-                cartItemsRepository.save(item);
+                try {
+                    cartItemsRepository.save(item);
+                } catch (DataIntegrityViolationException e) {
+                    cartItemsRepository.incrementQuantity(cart.getId(), dto.getProductId(), dto.getQuantity());
+                }
             }
         }
 

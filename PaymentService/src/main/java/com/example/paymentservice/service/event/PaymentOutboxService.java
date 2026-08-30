@@ -1,10 +1,11 @@
 package com.example.paymentservice.service.event;
 
 import com.example.paymentservice.dao.event.OutboxEventRepository;
-import com.example.paymentservice.dto.payment.event.*;
 import com.example.paymentservice.entity.event.OutboxEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.example.events.payment.PaymentCompletedEvent;
+import org.example.events.payment.PaymentFailedEvent;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,16 +34,6 @@ public class PaymentOutboxService {
         repository.save(outbox);
     }
 
-    public void publishProcessRequested(
-            PaymentProcessRequestedEvent event
-    ) {
-
-        saveEvent(
-                "payment.process.requested",
-                event.orderId().toString(),
-                event
-        );
-    }
 
     public void publishCompleted(
             PaymentCompletedEvent event
@@ -66,26 +57,5 @@ public class PaymentOutboxService {
         );
     }
 
-    public void publishRefundRequested(
-            PaymentRefundRequestedEvent event
-    ) {
-
-        saveEvent(
-                "payment.refund.requested",
-                event.orderId().toString(),
-                event
-        );
-    }
-
-    public void publishRefunded(
-            PaymentRefundedEvent event
-    ) {
-
-        saveEvent(
-                "payment.refunded",
-                event.orderId().toString(),
-                event
-        );
-    }
 
 }

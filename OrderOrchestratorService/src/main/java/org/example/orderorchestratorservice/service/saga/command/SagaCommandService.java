@@ -150,7 +150,9 @@ public class SagaCommandService {
                 new OrderAwaitingPaymentEvent(
                         UUID.randomUUID().toString(),
                         event.correlationId(),
-                        event.orderId()
+                        event.orderId(),
+                        saga.getUserId(),
+                        saga.getTotalAmount()
                 );
 
         outboxService.publishOrderAwaitingPayment(

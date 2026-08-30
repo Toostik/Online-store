@@ -2,19 +2,23 @@ package com.example.cartservice.entity.cart;
 
 import com.example.cartservice.dto.cart.CartItemDto;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import java.math.BigDecimal;
 
 @Entity
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString(exclude = "cart")
-@Table(name = "cart_items")
+@Table(
+        name = "cart_items",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_cart_item_cart_product",
+                columnNames = {"cart_id", "product_id"}
+        )
+)
 public class CartItem {
 
     @Id

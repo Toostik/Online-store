@@ -19,7 +19,7 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/carts/**").hasAnyRole("USER","ADMIN")
+                        .requestMatchers("/api/v1/carts/**").hasAnyRole("USER","ADMIN")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth

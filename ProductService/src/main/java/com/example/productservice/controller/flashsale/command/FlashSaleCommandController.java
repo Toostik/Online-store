@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/flash-sales")
+@RequestMapping("/api/v1/flash-sales")
 public class FlashSaleCommandController {
 
     private final FlashSaleService flashSaleService;

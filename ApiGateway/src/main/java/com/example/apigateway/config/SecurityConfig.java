@@ -11,7 +11,12 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -24,21 +29,26 @@ public class SecurityConfig {
 
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .pathMatchers("/api/auth/**")
+                        .pathMatchers("/api/v1/auth/**")
+                        .permitAll()
+
+                        .pathMatchers("/actuator/**")
                         .permitAll()
 
                         .pathMatchers(HttpMethod.GET,
-                                "/api/users/**",
-                                "/api/products/**",
-                                "/api/categories/**",
-                                "/api/flash-sales/**")
+                                "/api/v1/images/products/**",
+                                "/api/v1/images/users/avatar/**",
+                                "/api/v1/users/**",
+                                "/api/v1/products/**",
+                                "/api/v1/categories/**",
+                                "/api/v1/flash-sales/**")
                         .permitAll()
 
 
-                        .pathMatchers("/api/admin/**")
+                        .pathMatchers("/api/v1/admin/**")
                         .hasRole("ADMIN")
                         .anyExchange()
                         .authenticated()
@@ -51,6 +61,22 @@ public class SecurityConfig {
                         )
                 )
                 .build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "https://shop-frontend-rom99.vercel.app"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        config.setExposedHeaders(List.of("Authorization"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }
 

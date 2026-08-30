@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 
 @RestController
-@RequestMapping("/api/admin/whitelist")
+@RequestMapping("/api/v1/admin/whitelist")
 @RequiredArgsConstructor
 public class WhiteListController {
 

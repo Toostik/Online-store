@@ -16,7 +16,7 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/v1/products")
 public class ProductQueryController {
 
     private final ProductService productService;

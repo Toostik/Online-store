@@ -19,13 +19,13 @@ public class UserCacheService {
     private final RedisTemplate<String, UserDto> redisTemplate;
     private final String USER_PREFIX = "user:";
 
-    public void save(User user) {
+    public void save(UserDto userDto) {
 
-        String key = USER_PREFIX + user.getId();
+        String key = USER_PREFIX + userDto.getId();
 
         try {
 
-            redisTemplate.opsForValue().set(key, user.toDto(), Duration.ofDays(1));
+            redisTemplate.opsForValue().set(key, userDto, Duration.ofDays(1));
 
         } catch (Exception e) {
             log.warn("Redis unavailable", e);
@@ -55,7 +55,7 @@ public class UserCacheService {
         User user = userRepository.getUserById(userId)
                 .orElseThrow();
 
-        save(user);
+        save(user.toDto());
 
         return user.toDto();
 

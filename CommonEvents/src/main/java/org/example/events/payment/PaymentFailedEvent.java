@@ -12,6 +12,8 @@ public record PaymentFailedEvent(
 
         Long orderId,
 
+        Long userId,
+
         PaymentFailureReason reason
 
 ) {}

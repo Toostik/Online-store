@@ -2,12 +2,12 @@ package com.example.productservice.service.flashsale.schedule;
 
 import com.example.productservice.dao.flashsale.FlashSaleReservationRepository;
 import com.example.productservice.entity.flashsale.FlashSaleReservation;
-import com.example.productservice.entity.flashsale.ReservationStatus;
+import com.example.productservice.entity.enums.ReservationStatus;
 import com.example.productservice.service.flashsale.cache.FlashSaleReserveCacheService;
 import com.example.productservice.service.flashsale.event.FlashSaleOutboxService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.events.flashsale.FlashSaleReservationExpiredEvent;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +26,11 @@ public class FlashSaleReservationScheduler {
 
     @Scheduled(fixedDelay = 30000)
     @Transactional
+    @SchedulerLock(
+            name = "expireReservations",
+            lockAtMostFor = "2m",
+            lockAtLeastFor = "10s"
+    )
     public void expireReservations() {
 
         List<FlashSaleReservation> flashSaleReservations = flashSaleReservationRepository

@@ -40,17 +40,6 @@ public class ProductQueryService {
     private final SecurityService securityService;
     private final ProductCacheService productCacheService;
 
-
-    public List<ProductDto> getAllProducts() {
-
-        Iterable<Product> products = productRepository.findAll();
-
-        return StreamSupport.stream(products.spliterator(), false)
-                .map(productMapper::toDto)
-                .toList();
-
-    }
-
     public ProductDto getProductById(Long id) {
 
         ProductDto product = productCacheService.get(id);

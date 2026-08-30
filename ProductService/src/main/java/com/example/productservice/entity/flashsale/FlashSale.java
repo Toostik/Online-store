@@ -1,5 +1,6 @@
 package com.example.productservice.entity.flashsale;
 
+import com.example.productservice.entity.enums.FlashSaleStatus;
 import com.example.productservice.entity.product.Product;
 import jakarta.persistence.*;
 import lombok.*;

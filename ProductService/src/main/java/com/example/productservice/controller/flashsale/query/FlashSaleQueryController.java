@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/flash-sales")
+@RequestMapping("/api/v1/flash-sales")
 public class FlashSaleQueryController {
 
 }

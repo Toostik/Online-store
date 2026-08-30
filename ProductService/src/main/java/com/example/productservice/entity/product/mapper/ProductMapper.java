@@ -17,8 +17,6 @@ public interface ProductMapper {
     @Mapping(target = "category", source = "category")
     @Mapping(target = "stockStatus",
             expression = "java(product.getAvailableQuantity() > 0)")
-    @Mapping(target = "reviewCount",
-            expression = "java(product.getReviews() == null ? 0 : product.getReviews().size())")
     @Mapping(target = "imageUrls", source = "images")
     ProductDto toDto(Product product);
 

@@ -7,16 +7,15 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "products")
@@ -69,6 +68,9 @@ public class Product {
 
     @OneToMany(mappedBy = "product")
     private List<Review> reviews;
+
+    @Column(name = "review_count")
+    private Integer reviewCount = 0;
 
     public Product(String name, String description, BigDecimal price, Integer stockQuantity, List<ImageProduct> images, Category category) {
         this.name = name;

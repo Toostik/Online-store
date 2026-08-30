@@ -7,10 +7,10 @@ import com.example.productservice.dto.flashsale.CreateFlashSaleOrderRequest;
 import com.example.productservice.dto.flashsale.FlashSaleReservationResponse;
 import com.example.productservice.dto.flashsale.ReserveFlashSaleRequest;
 import com.example.productservice.dto.flashsale.request.FlashSaleCreateRequest;
+import com.example.productservice.entity.enums.FlashSaleStatus;
+import com.example.productservice.entity.enums.ReservationStatus;
 import com.example.productservice.entity.flashsale.FlashSale;
 import com.example.productservice.entity.flashsale.FlashSaleReservation;
-import com.example.productservice.entity.flashsale.FlashSaleStatus;
-import com.example.productservice.entity.flashsale.ReservationStatus;
 import com.example.productservice.entity.product.Product;
 import com.example.productservice.exceptions.flashsale.*;
 import com.example.productservice.exceptions.product.ProductNotFoundException;
@@ -87,7 +87,21 @@ public class FlashSaleCommandService {
                         userId
                 );
 
-        flashSaleReservationRepository.save(flashSaleReservation);
+        try {
+
+            flashSaleReservationRepository.save(
+                    flashSaleReservation
+            );
+
+        } catch (Exception e) {
+
+            cacheService.release(
+                    flashSale.getId(),
+                    request.quantity()
+            );
+
+            throw e;
+        }
 
         log.info(
                 "FLASH_SALE_RESERVED saleId={} userId={} quantity={} reservationKey={}",
@@ -104,34 +118,61 @@ public class FlashSaleCommandService {
         );
     }
 
-    public void createFlashSaleOrder(String reservationKey, CreateFlashSaleOrderRequest request) {
+    @Transactional
+    public void createFlashSaleOrder(
+            String reservationKey,
+            CreateFlashSaleOrderRequest request
+    ) {
 
-        FlashSaleReservation reservation = flashSaleReservationRepository.findByReservationKey(UUID.fromString(reservationKey))
-                .orElseThrow(
-                        () -> new FlashSaleReserveException("Reservation not found")
-                );
+        FlashSaleReservation reservation =
+                flashSaleReservationRepository
+                        .findByReservationKeyForUpdate(
+                                UUID.fromString(reservationKey)
+                        )
+                        .orElseThrow(
+                                () -> new FlashSaleReserveException(
+                                        "Reservation not found"
+                                )
+                        );
 
-        if(!reservation.getStatus().equals(ReservationStatus.PENDING)){
-            throw new FlashSaleReserveException("Reservation status is incorrect");
+        if (reservation.getStatus() == ReservationStatus.COMPLETED) {
+            return;
         }
 
-        FlashSaleReservationAndCheckoutEvent event = new FlashSaleReservationAndCheckoutEvent(
-                UUID.randomUUID(),
-                reservation.getReservationKey(),
-                reservation.getFlashSale().getId(),
-                reservation.getUserId(),
-                reservation.getFlashSale().getProduct().getId(),
-                reservation.getQuantity(),
-                reservation.getFlashSale().getDiscountedPrice(),
-                new AddressDto(
-                        request.country(),
-                        request.city(),
-                        request.address(),
-                        request.apartment(),
-                        request.postalCode()
-                ),
-                request.deliveryMethod()
+        if (reservation.getStatus() == ReservationStatus.CANCELLED) {
+            throw new FlashSaleReserveException(
+                    "Reservation cancelled"
+            );
+        }
+
+        if (reservation.getStatus() != ReservationStatus.PENDING) {
+            throw new FlashSaleReserveException(
+                    "Reservation already processing"
+            );
+        }
+
+        reservation.setStatus(
+                ReservationStatus.CHECKOUT_STARTED
         );
+
+        FlashSaleReservationAndCheckoutEvent event =
+                new FlashSaleReservationAndCheckoutEvent(
+                        UUID.randomUUID(),
+                        reservation.getReservationKey(),
+                        reservation.getFlashSale().getId(),
+                        reservation.getUserId(),
+                        reservation.getFlashSale().getProduct().getId(),
+                        reservation.getQuantity(),
+                        reservation.getFlashSale().getDiscountedPrice(),
+                        new AddressDto(
+                                request.country(),
+                                request.city(),
+                                request.address(),
+                                request.apartment(),
+                                request.postalCode()
+                        ),
+                        request.deliveryMethod()
+                );
 
         flashSaleOutboxService.publishCreated(event);
 
@@ -139,6 +180,7 @@ public class FlashSaleCommandService {
                 "FLASH_SALE_CHECKOUT reservationKey={}",
                 reservation.getReservationKey()
         );
+
     }
 
     public void createFlashSale(Long productId, FlashSaleCreateRequest request) {
@@ -151,15 +193,15 @@ public class FlashSaleCommandService {
             throw new FlashSaleCreateException("Quantity is less than available");
         }
 
-        if(request.discountedPrice().compareTo(product.getPrice()) >= 0){
+        if (request.discountedPrice().compareTo(product.getPrice()) >= 0) {
             throw new FlashSaleCreateException("Discounted price is incorrect");
         }
 
-        if (request.startsAt().isAfter(request.endsAt())){
+        if (request.startsAt().isAfter(request.endsAt())) {
             throw new FlashSaleCreateException("Starts time is incorrect");
         }
 
-        if (request.startsAt().isBefore(Instant.now())){
+        if (request.startsAt().isBefore(Instant.now())) {
             throw new FlashSaleCreateException("Ends time is incorrect");
         }
 
