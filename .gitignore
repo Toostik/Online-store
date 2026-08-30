@@ -31,6 +31,7 @@ temp/
 # ================== Secrets & Environment ==================
 *.env
 .env
+.env.*
 application-*.local.*
 application-*.local.properties
 keys/
